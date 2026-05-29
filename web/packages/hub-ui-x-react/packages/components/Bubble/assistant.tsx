@@ -1,0 +1,265 @@
+import React, { useState, useCallback, useMemo, memo } from "react";
+import { t } from "../../locale";
+import Icon from "../Icon/index";
+import MdRenderer from "../Markdown/renderer";
+import "./assistant.css";
+
+/**
+ * 从内容中提取 <think> 标签包裹的思考内容
+ * 支持格式: <think>思考内容</think>
+ * @param content 原始内容
+ * @returns { reasoning: string, content: string } 提取后的思考内容和清理后的内容
+ */
+function extractThinkTag(content: string): {
+  reasoning: string;
+  content: string;
+} {
+  // 匹配 <think>...</think> 格式
+  const thinkRegex = /<think>([\s\S]*?)(?:<\/think>)/i;
+  const match = content.match(thinkRegex);
+
+  if (match) {
+    const reasoning = match[1].trim();
+    // 移除 think 标签及其内容
+    const cleanContent = content.replace(thinkRegex, "").trim();
+    return { reasoning, content: cleanContent };
+  }
+
+  return { reasoning: "", content };
+}
+
+interface Suggestion {
+  id: string | number;
+  content: string;
+}
+
+export interface BubbleAssistantProps {
+  type?: "welcome" | "assistant";
+  showError?: boolean;
+  content?: string;
+  suggestions?: Suggestion[];
+  avatar?: string;
+  showAvatar?: boolean;
+  markdownOptions?: any;
+  reasoning?: string;
+  reasoningExpanded?: boolean;
+  alwaysShowMenu?: boolean;
+  streaming?: boolean;
+  messageStyle?: React.CSSProperties;
+  messageClass?: string;
+  renderSource?: Function;
+  sourceRegex?: RegExp | string;
+  sourceEnabled?: boolean;
+  mermaidClickable?: boolean;
+  viewerClass?: string;
+  viewerStyle?: React.CSSProperties;
+  onSuggestion?: (content: string) => void;
+  onSourceReferenceHover?: (data: any) => void;
+  onSourceReferenceClick?: (data: any) => void;
+  onMermaidClick?: (data: any) => void;
+  header?: React.ReactNode;
+  error?: React.ReactNode;
+  footer?: React.ReactNode;
+  menu?: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+}
+
+const BubbleAssistant: React.FC<BubbleAssistantProps> = ({
+  type = "assistant",
+  showError = false,
+  content = "",
+  suggestions = [],
+  avatar = "",
+  showAvatar = false,
+  markdownOptions = {},
+  reasoning = "",
+  reasoningExpanded: reasoningExpandedProp = false,
+  alwaysShowMenu = false,
+  streaming = false,
+  messageStyle = {},
+  messageClass = "",
+  renderSource,
+  sourceRegex,
+  sourceEnabled = false,
+  mermaidClickable = false,
+  viewerClass = "",
+  viewerStyle = {},
+  onSuggestion,
+  onSourceReferenceHover,
+  onSourceReferenceClick,
+  onMermaidClick,
+  header,
+  error,
+  footer,
+  menu,
+  className,
+  style,
+}) => {
+  const [isReasoningExpanded, setIsReasoningExpanded] = useState(
+    reasoningExpandedProp,
+  );
+
+  // 提取  хро 标签内容
+  const { extractedReasoning, displayContent } = useMemo(() => {
+    const { reasoning: thinkReasoning, content: cleanContent } =
+      extractThinkTag(content);
+    // 合并传入的 reasoning 和从 think 标签提取的内容（两者都存在时合并）
+    const mergedReasoning = [reasoning, thinkReasoning]
+      .filter(Boolean)
+      .join("\n\n");
+    // 如果提取到了 think 标签内容，使用清理后的内容；否则使用原始内容
+    const finalContent = thinkReasoning ? cleanContent : content;
+    return {
+      extractedReasoning: mergedReasoning,
+      displayContent: finalContent,
+    };
+  }, [content, reasoning]);
+
+  const handleReasoningToggle = useCallback(() => {
+    setIsReasoningExpanded((prev) => !prev);
+  }, []);
+
+  const handleSuggestionClick = useCallback(
+    (suggestion: Suggestion) => {
+      onSuggestion?.(suggestion.content);
+    },
+    [onSuggestion],
+  );
+
+  return (
+    <div className={`x-assistant-bubble ${className || ""}`} style={style}>
+      {avatar && (
+        <div className="x-assistant-bubble__avatar">
+          <img src={avatar} alt="Assistant" />
+        </div>
+      )}
+      <div className="x-assistant-bubble__content">
+        {header}
+        <div
+          className={`x-assistant-bubble__message ${type === "welcome" ? "x-assistant-bubble__message--welcome" : "x-assistant-bubble__message--assistant"} ${messageClass}`}
+          style={messageStyle}
+        >
+          {extractedReasoning && (
+            <div className="x-assistant-bubble__reasoning">
+              <div
+                className="x-assistant-bubble__reasoning-header"
+                onClick={handleReasoningToggle}
+              >
+                <Icon name="think" />
+                <div className="x-assistant-bubble__reasoning-title">
+                  {displayContent
+                    ? t("hubx.bubble.completion_completed")
+                    : t("hubx.bubble.completion_thinking")}
+                </div>
+                <span
+                  className={`x-assistant-bubble__reasoning-arrow ${isReasoningExpanded ? "x-assistant-bubble__reasoning-arrow--expanded" : ""}`}
+                >
+                  <Icon name="down" />
+                </span>
+              </div>
+              {isReasoningExpanded && (
+                <div className="x-assistant-bubble__reasoning-content-wrapper">
+                  <MdRenderer
+                    className="x-assistant-bubble__reasoning-content"
+                    content={extractedReasoning}
+                    streaming={streaming}
+                    sourceEnabled={sourceEnabled}
+                    renderSource={renderSource}
+                    sourceRegex={sourceRegex}
+                    viewerClass={viewerClass}
+                    viewerStyle={viewerStyle}
+                    onSourceReferenceHover={onSourceReferenceHover}
+                    onSourceReferenceClick={onSourceReferenceClick}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {showError ? (
+            error
+          ) : (
+            <MdRenderer
+              className="x-assistant-bubble__markdown"
+              content={displayContent}
+              streaming={streaming}
+              sourceEnabled={sourceEnabled}
+              renderSource={renderSource}
+              sourceRegex={sourceRegex}
+              mermaidClickable={mermaidClickable}
+              viewerClass={viewerClass}
+              viewerStyle={viewerStyle}
+              onSourceReferenceHover={onSourceReferenceHover}
+              onSourceReferenceClick={onSourceReferenceClick}
+              onMermaidClick={onMermaidClick}
+            />
+          )}
+
+          {streaming && (
+            <div className="x-assistant-bubble__loading">
+              <div className="x-assistant-bubble__loading-dot x-assistant-bubble__loading-dot--1"></div>
+              <div className="x-assistant-bubble__loading-dot x-assistant-bubble__loading-dot--2"></div>
+              <div className="x-assistant-bubble__loading-dot x-assistant-bubble__loading-dot--3"></div>
+            </div>
+          )}
+        </div>
+
+        {suggestions.length > 0 && (
+          <div className="x-assistant-bubble__suggestions">
+            <div className="x-assistant-bubble__suggestions-title">
+              我可以帮您：
+            </div>
+            {suggestions.map(
+              (suggestion) =>
+                suggestion.content.trim() && (
+                  <div
+                    key={suggestion.id}
+                    className="x-assistant-bubble__suggestion"
+                    onClick={() => handleSuggestionClick(suggestion)}
+                  >
+                    {suggestion.content}
+                  </div>
+                ),
+            )}
+          </div>
+        )}
+
+        {footer}
+
+        <div
+          className={`x-assistant-bubble__menu ${!alwaysShowMenu ? "x-assistant-bubble__menu--hidden" : ""}`}
+        >
+          {menu}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// 自定义比较函数：只比较动态变化的 props
+const arePropsEqual = (
+  prevProps: BubbleAssistantProps,
+  nextProps: BubbleAssistantProps,
+): boolean => {
+  return (
+    prevProps.content === nextProps.content &&
+    prevProps.streaming === nextProps.streaming &&
+    prevProps.reasoning === nextProps.reasoning &&
+    prevProps.showError === nextProps.showError &&
+    prevProps.menu === nextProps.menu &&
+    prevProps.error === nextProps.error &&
+    prevProps.header === nextProps.header &&
+    prevProps.footer === nextProps.footer &&
+    // suggestions 数组浅比较
+    prevProps.suggestions === nextProps.suggestions &&
+    // 静态 props 不需要比较（type, avatar, className 等）
+    prevProps.alwaysShowMenu === nextProps.alwaysShowMenu
+  );
+};
+
+const BubbleAssistantMemo = memo(BubbleAssistant, arePropsEqual);
+
+BubbleAssistantMemo.displayName = "xBubbleAssistant";
+
+export default BubbleAssistantMemo;
