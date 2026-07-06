@@ -10,7 +10,7 @@ import { useShortcutsStore } from "@/stores/modules/shortcuts";
 import { useUserStore } from "@/stores/modules/user";
 import { getPublicPath } from "@/utils/config";
 import AgentList from "@/views/agent/components/AgentList";
-import ToolkitList from "@/views/toolkit/components/List";
+import ToolkitList from "@/views/toolkit/components/list";
 import { PromptList } from "@/views/prompt/components/List";
 import { Footer } from "@/components/Layout";
 import { ExpandSidebarButton } from "@/components/Layout/ExpandSidebarButton";

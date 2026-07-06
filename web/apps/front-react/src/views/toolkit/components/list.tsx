@@ -10,7 +10,7 @@ import { SvgIcon } from "@km/shared-components-react";
 import { getPublicPath } from "@/utils/config";
 import { checkPermission } from '@/utils/permission';
 import AccountDialog, { AccountDialogRef } from "./AccountDialog";
-import "./List.css";
+import "./list.css";
 
 const DEFAULT_LOGO = getPublicPath("/images/default_logo.png");
 

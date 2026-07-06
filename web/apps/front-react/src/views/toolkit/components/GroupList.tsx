@@ -8,7 +8,7 @@ import { useIsSoftStyle } from "@/stores/modules/enterprise";
 import { scrollToElement } from "@km/shared-utils";
 import { useSearchParams } from "react-router-dom";
 import { showLoginModal, isLoggedIn } from "@/utils/permission";
-import ListView from "./List";
+import ListView from "./list";
 
 interface ExploreToolkitProps {
   stickyOffset?: number;
