@@ -88,7 +88,7 @@ func ConvertRequest(textRequest model.GeneralOpenAIRequest, meta *meta.Meta, cus
 					}
 					continue
 				}
-				if contentObj.Type != "image" {
+				if contentObj.Type != "image" && contentObj.Type != "file" {
 					logger.SysError("File types are not supported temporarily")
 					continue
 				}
@@ -124,8 +124,16 @@ func ConvertRequest(textRequest model.GeneralOpenAIRequest, meta *meta.Meta, cus
 					}
 				}
 
+				// 根据实际扩展名判定 image / document，不能硬编码 image——
+				// docx/pdf 等非图片被当 image 发给 Dify，llm_vision 会报 "cannot identify image file"
+				fileType := "document"
+				lowerExt := strings.ToLower(strings.TrimSpace(uoloadFile.Extension))
+				lowerMime := strings.ToLower(strings.TrimSpace(uoloadFile.MimeType))
+				if lowerExt == "png" || lowerExt == "jpg" || lowerExt == "jpeg" || lowerExt == "gif" || lowerExt == "webp" || lowerExt == "bmp" || lowerExt == "svg" || strings.HasPrefix(lowerMime, "image/") {
+					fileType = "image"
+				}
 				files = append(files, File{
-					Type:           "image",
+					Type:           fileType,
 					TransferMethod: "local_file",
 					UploadFileID:   fileMapping.ChannelFileID,
 					Url:            "",

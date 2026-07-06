@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"mime"
@@ -54,13 +55,39 @@ func (s *PersonalUploadSyncService) SyncUploadedFile(ctx context.Context, userID
 		OriginRefID:      uploadFile.ID,
 		OriginSource:     model.FileOriginSourceLocal,
 		ConversionStatus: model.FileConversionStatusNormal,
-		ParsingStatus:    model.FileParsingStatusDisabled,
+		ParsingStatus:    model.FileParsingStatusPending,
 		UserID:           userID,
 	}
 
 	if err := file.Save(); err != nil {
 		return nil, err
 	}
+
+	// 触发文档解析 pipeline:让个人库上传的文档也能被解析(工作台/检索可读)
+	go func() {
+		params := map[string]interface{}{
+			"eid":           s.Eid,
+			"file_id":       file.ID,
+			"user_id":       userID,
+			"library_id":    library.ID,
+			"upload_id":     uploadFile.ID,
+			"origin_status": model.FileConversiontatusInactive,
+		}
+		paramsJSON, err := json.Marshal(params)
+		if err != nil {
+			logger.SysErrorf("【我的上传】序列化解析参数失败: eid=%d fileID=%d err=%v", s.Eid, file.ID, err)
+			return
+		}
+		jobs, err := createRagJobsForFile(context.Background(), s.Eid, file.ID, string(paramsJSON))
+		if err != nil {
+			logger.SysErrorf("【我的上传】创建解析任务失败: eid=%d fileID=%d err=%v", s.Eid, file.ID, err)
+			return
+		}
+		if len(jobs) > 0 {
+			model.UpdateFileConversionStatus(file.ID, model.FileConversionStatusPending)
+			logger.SysLogf("【我的上传】已触发解析: eid=%d fileID=%d jobCount=%d", s.Eid, file.ID, len(jobs))
+		}
+	}()
 
 	fps := NewFilePermissionService(s.Eid)
 	if err := fps.AddFileCreatorPermission(file.ID, userID); err != nil {

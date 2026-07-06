@@ -836,7 +836,10 @@ func compactSanitizeChoices(choices []interface{}) []interface{} {
 			if strings.TrimSpace(toString(cleanDelta["reasoning_content"])) == "" {
 				delete(cleanDelta, "reasoning_content")
 			}
-			if strings.TrimSpace(toString(cleanDelta["content"])) == "" {
+			// 注意:content 只能按原始值判空,不能用 TrimSpace——
+			// 换行符(\n)和 markdown 硬换行(如 "  \n")会被 TrimSpace 判成空而误删,
+			// 导致 Dify 流式回复的换行全部丢失、字段挤成一行
+			if toString(cleanDelta["content"]) == "" {
 				delete(cleanDelta, "content")
 			}
 			if len(cleanDelta) == 0 {
