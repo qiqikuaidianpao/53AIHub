@@ -27,7 +27,7 @@ COPY . .
 # 构建应用：生成 Swagger 文档 + CGO 静态编译
 RUN go install github.com/swaggo/swag/cmd/swag@v1.16.4 && \
     swag init -g router/main.go --output docs/ && \
-    CGO_ENABLED=1 go build -a -o /app/53AIHub -ldflags '-extldflags "-static"' ./main.go
+    CGO_ENABLED=1 go build -a -o /app/53AIHub -ldflags '-extldflags "-static"' .
 
 # 使用精简的Alpine镜像作为运行时
 FROM alpine:3.18
