@@ -1,7 +1,7 @@
 ﻿// packages/shared-business/src/chat/components/message/AssistantMessage.tsx
 
 import { memo, useState, useCallback, useMemo } from "react";
-import { Checkbox, message as antdMessage, Tooltip } from "antd";
+import { Checkbox, message as antdMessage } from "antd";
 import { BubbleAssistant } from "@km/hub-ui-x-react";
 import { MessageMenu } from "../MessageMenu";
 import { FeedbackPanel } from "../feedback";
@@ -408,7 +408,8 @@ function AssistantMessageInner({
   const showProcessFlow = features?.processFlow && message.process_records && message.process_records.length > 0;
   const showOutputFiles = !openclaw && features?.outputFiles && message.outputFiles && message.outputFiles.length > 0;
   const showQuotation = features?.sourceRef && message.rag_stats?.file_quotations && message.rag_stats.file_quotations.length > 0;
-  const showAnswerRemarks = agentInfo?.settings?.answer_remarks_config?.enable && !message.loading;
+  const answerRemarksConfig = agentInfo?.settings?.answer_remarks_config;
+  const showAnswerRemarks = Boolean(answerRemarksConfig?.enable && !message.loading);
 
   if (
     openclaw &&
@@ -462,7 +463,7 @@ function AssistantMessageInner({
 
           {showAnswerRemarks && (
             <div className="text-sm text-[#999999] break-words">
-              {agentInfo!.settings!.answer_remarks_config.content}
+              {answerRemarksConfig?.content}
             </div>
           )}
 
@@ -507,7 +508,6 @@ function AssistantMessageInner({
           reasoning={message.reasoning_content}
           reasoningExpanded={message.reasoning_expanded}
           avatar={agentInfo?.logo}
-          name={agentInfo?.name}
           alwaysShowMenu={isLastMessage || actualFeedbackVisible}
           className={className}
           style={style}
@@ -540,7 +540,7 @@ function AssistantMessageInner({
               )}
               {showAnswerRemarks && (
                 <div className="text-sm text-[#999999] break-words my-2">
-                  {agentInfo!.settings!.answer_remarks_config.content}
+                  {answerRemarksConfig?.content}
                 </div>
               )}
               {showQuotation && (

@@ -3,7 +3,6 @@
 import { memo } from "react";
 import { Tooltip } from "antd";
 import { SvgIcon } from "@km/shared-components-react";
-import { useTranslation } from "../../i18n";
 import type { FileItem } from "../../types/message";
 
 export interface SpecifiedFilesProps {
@@ -29,8 +28,6 @@ function SpecifiedFilesInner({
   onFileClick,
   renderLink,
 }: SpecifiedFilesProps) {
-  const { t } = useTranslation();
-
   // Content display mode
   if (content) {
     if (isExpanded) {

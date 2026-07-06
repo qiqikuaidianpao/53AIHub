@@ -84,6 +84,8 @@ export interface OpenClawInteractionInfo {
   [key: string]: unknown;
 }
 
+export type OpenClawActivityTone = 'neutral' | 'success' | 'warning' | 'error';
+
 export interface OpenClawActivityItem {
   key: string;
   sessionId?: string;
@@ -93,7 +95,7 @@ export interface OpenClawActivityItem {
   summary?: string;
   detail?: string;
   createdAt?: string;
-  tone?: 'neutral' | 'success' | 'warning' | 'error';
+  tone?: OpenClawActivityTone;
   tool?: {
     toolCallId?: string;
     name?: string;
@@ -120,6 +122,7 @@ export type OpenClawTimelineItemType =
 /** 文件项 */
 export interface FileItem {
   id: string | number;
+  file_id?: string | number;
   name?: string;
   file_name?: string;
   file_path?: string;
@@ -127,6 +130,7 @@ export interface FileItem {
   file_mime?: string;
   file_size?: number;
   file_url?: string;
+  file_icon?: string;
   icon?: string;
   url?: string;
   preview_key?: string;
@@ -170,6 +174,8 @@ export interface ChunkItem {
   file_icon?: string;
   library_id?: string | number;
   library_name?: string;
+  library_icon?: string;
+  space_name?: string;
   source_key?: string;
   source?: string;
   score?: number;
@@ -253,7 +259,7 @@ export interface OpenClawTimelineItem {
   title?: string;
   content?: string;
   detail?: string;
-  tone?: 'neutral' | 'success' | 'warning' | 'error';
+  tone?: OpenClawActivityTone;
   kind?: string;
   replace?: boolean;
   tool?: OpenClawActivityItem['tool'];
@@ -306,16 +312,48 @@ export interface OpenClawTurnProjection {
   isStreaming?: boolean;
 }
 
+export interface IntentData {
+  intent?: string;
+  skill_name?: string;
+  confidence?: number;
+  reasoning?: string;
+  keywords?: string[];
+  answer?: string;
+  expanded_queries?: unknown;
+}
+
+export interface ProcessStep {
+  step_code?: string;
+  status?: string;
+  message?: string;
+  data?: Record<string, any>;
+  [key: string]: any;
+}
+
+export interface AgentRunReplayEvent {
+  event_type?: string;
+  type?: string;
+  payload?: Record<string, any>;
+  message_id?: string | number;
+  [key: string]: any;
+}
+
 /** 消息类型 */
 export interface Message {
   id: string | number;
+  agent_id?: string | number;
   conversation_id?: string | number;
+  created_at?: string | number;
+  updated_at?: string | number;
+  created_time?: number | string;
+  updated_time?: number | string;
   question?: string;
   original_question?: string;
   answer?: string;
   content?: string;
   reasoning_content?: string;
   reasoning_expanded?: boolean;
+  interrupted?: boolean;
   loading?: boolean;
   error?: boolean;
   showErrorDetails?: boolean;
@@ -332,7 +370,11 @@ export interface Message {
   skill?: SkillInfo;
   outputFiles?: OutputFile[];
   rag_stats?: RagStats;
+  rag_temp?: Record<string, any>;
+  rag_search_text?: string;
   process_records?: ProcessRecord[];
+  specified_content?: string;
+  knowledge_graph?: any;
   skillRunItems?: SkillRunItem[];
   openclawActivities?: OpenClawActivityItem[];
   openclawTimelineItems?: OpenClawTimelineItem[];

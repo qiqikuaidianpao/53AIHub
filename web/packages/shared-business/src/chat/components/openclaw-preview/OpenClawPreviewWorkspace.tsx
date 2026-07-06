@@ -384,7 +384,7 @@ export function OpenClawPreviewWorkspace({
               open={historyOpen}
               onOpenChange={setHistoryOpen}
               arrow={false}
-              styles={{ body: { padding: 0 } }}
+              overlayInnerStyle={{ padding: 0 }}
               content={
                 <div className="openclaw-history-popover w-full rounded-[14px] bg-white p-3 shadow-[0_12px_30px_rgba(31,33,35,0.10)]">
                   {healthy !== true ? (

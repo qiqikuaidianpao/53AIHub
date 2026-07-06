@@ -1,4 +1,4 @@
-import { forwardRef, useImperativeHandle, useState, useMemo, useCallback } from 'react'
+import { forwardRef, useImperativeHandle, useMemo, useCallback } from 'react'
 import { Tooltip, message, Spin } from 'antd'
 import { CopyOutlined, SyncOutlined, QuestionCircleOutlined } from '@ant-design/icons'
 import { useAgentCreateAdapter } from '../adapters'
@@ -47,8 +47,6 @@ export const Openclaw = forwardRef<OpenclawRef, OpenclawProps>(
     const agentId = useAgentFormStore((state) => state.agent_id)
     const loading = useAgentFormStore((state) => state.loading)
     const setFormData = useAgentFormStore((state) => state.setFormData)
-
-    const [activeCollapse, setActiveCollapse] = useState(['config', 'process'])
 
     // 从 formData 获取配置
     const botId = useMemo(() => {

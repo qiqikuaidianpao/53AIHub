@@ -271,7 +271,7 @@ function getOpenClawTerminalEvents(payload: any): any[] {
   return getOpenClawTimelineEvents(payload).filter(isOpenClawTerminalTimelineEvent);
 }
 
-function hasOpenClawTerminalEvent(payload: any): boolean {
+export function hasOpenClawTerminalEvent(payload: any): boolean {
   return getOpenClawTerminalEvents(payload).length > 0;
 }
 
@@ -528,7 +528,7 @@ export const ChatView = forwardRef<ChatViewRef, ChatViewProps>(
     const [shareMode, setShareMode] = useState(false);
     const [selectMessageIds, setSelectMessageIds] = useState<(string | number)[]>([]);
     const [selectAll, setSelectAll] = useState(false);
-    const [shareLoading, setShareLoading] = useState(false);
+    const [, setShareLoading] = useState(false);
 
     // Handle new conversation - define before useChatTimeout
     const handleNewConversation = useCallback(() => {
@@ -800,14 +800,15 @@ export const ChatView = forwardRef<ChatViewRef, ChatViewProps>(
           target.openclawTurn = {
             ...target.openclawTurn,
             status: "streaming",
-          };
+          } as typeof target.openclawTurn;
+          const openclawTurn = target.openclawTurn as NonNullable<Message["openclawTurn"]>;
 
           if (turnEvents.length) {
             mergeOpenClawTimelineEventsIntoMessage(target, { events: turnEvents }, { canonicalOnly: true });
           } else {
             syncOpenClawProjectionToMessage(
               target,
-              projectOpenClawTurn(target.openclawTurn, { isStreaming: true, canonicalOnly: true })
+              projectOpenClawTurn(openclawTurn, { isStreaming: true, canonicalOnly: true })
             );
           }
           target.loading = true;
@@ -1907,8 +1908,8 @@ export const ChatView = forwardRef<ChatViewRef, ChatViewProps>(
           features={features}
           renderHeader={renderHeader ? (props) => renderHeader({
             agentInfo: props.agentInfo,
-            lang: props.lang,
-            setLang: props.setLang,
+            lang: props.lang as Lang,
+              setLang: (nextLang) => props.setLang(nextLang),
             showGuide: props.showGuide,
             onGuideChange: props.onGuideChange,
           }) : undefined}

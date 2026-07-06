@@ -108,13 +108,17 @@ export const useConversationStore = create<ConversationState & ConversationActio
       const requestId = ++loadConversationsRequestId;
       const targetAgentId = agent_id;
 
+      if (targetAgentId === undefined || targetAgentId === null || targetAgentId === "") {
+        return [];
+      }
+
       if (!conversationApi) {
         console.warn("conversationApi not set, returning empty conversations");
         return [];
       }
 
       try {
-        const res = await conversationApi.list(targetAgentId);
+        const res = await conversationApi.list(String(targetAgentId));
 
         // 丢弃过期请求的响应
         if (requestId !== loadConversationsRequestId) {
@@ -163,7 +167,7 @@ export const useConversationStore = create<ConversationState & ConversationActio
         data.conversation_type = conversation_type;
       }
 
-      const res = await conversationApi.create(agent_id, title, file_id, String(conversation_type || ""));
+      const res = await conversationApi.create(String(agent_id), title, file_id, String(conversation_type || ""));
       return res.data || res;
     },
 
@@ -193,7 +197,7 @@ export const useConversationStore = create<ConversationState & ConversationActio
         throw new Error("conversationApi not set");
       }
 
-      const data = { title: conversation.title };
+      const data = { title: conversation.title || "" };
       await conversationApi.edit(conversation.conversation_id, data);
       get().updateConversation(conversation);
     },

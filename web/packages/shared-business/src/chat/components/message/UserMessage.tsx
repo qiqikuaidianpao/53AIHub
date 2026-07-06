@@ -5,8 +5,15 @@ import { Checkbox } from "antd";
 import { BubbleUser } from "@km/hub-ui-x-react";
 import { MessageMenu } from "../MessageMenu";
 import { SpecifiedFiles } from "../source";
-import { useTranslation } from "../../i18n";
 import type { Message, ChatMessagesFeatures, FileItem } from "../../types/message";
+
+interface BubbleFileItem {
+  id: string;
+  filename: string;
+  url: string;
+  size: number;
+  mime_type: string;
+}
 
 export interface UserMessageProps {
   /** 消息数据 */
@@ -77,8 +84,6 @@ function UserMessageInner({
   onFileClick,
   renderFileLink,
 }: UserMessageProps) {
-  const { t } = useTranslation();
-
   const handleSelect = useCallback(() => {
     if (isShareMode && onSelect) {
       onSelect(message);
@@ -101,6 +106,22 @@ function UserMessageInner({
     return files;
   }, [message.specified_files, message.uploaded_files]);
 
+  const uploadedFiles = useMemo<BubbleFileItem[]>(
+    () => (message.uploaded_files || []).map((file) => ({
+      id: String(file.id),
+      filename: file.name || file.file_name || "",
+      url: file.url || file.file_url || file.file_path || "",
+      size: file.file_size ?? 0,
+      mime_type: file.file_mime || "",
+    })),
+    [message.uploaded_files],
+  );
+
+  const bubbleStyle = {
+    "--hubx-color-bg-message": "#EBF1FF",
+    ...style,
+  } as React.CSSProperties;
+
   // 渲染技能标签
   const renderSkillTag = () => {
     if (!features?.skillTag || !message.skill || !(message.skill.skill_name && message.skill.display_name)) return null;
@@ -120,7 +141,7 @@ function UserMessageInner({
         files={specifiedFiles}
         type={features?.specifiedFilesType || "no_jump"}
         onFileClick={handleFileClick}
-        renderFileLink={renderFileLink}
+        renderLink={renderFileLink}
       />
     );
   };
@@ -135,13 +156,10 @@ function UserMessageInner({
       <div className="flex-1 overflow-hidden">
         <BubbleUser
           content={parsedContent}
-          files={message.uploaded_files}
+          files={uploadedFiles}
           avatar={agentLogo}
           className={className}
-          style={{
-            "--hubx-color-bg-message": "#EBF1FF",
-            ...style,
-          }}
+          style={bubbleStyle}
           header={renderSpecifiedFilesHeader()}
           contentBefore={renderSkillTag()}
           menu={

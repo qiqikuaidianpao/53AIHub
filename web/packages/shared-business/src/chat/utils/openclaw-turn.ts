@@ -392,27 +392,31 @@ function canReplaceSameSeqEvent(existing: OpenClawTurnEvent, incoming: OpenClawT
 function compareEvents(left: OpenClawTurnEvent, right: OpenClawTurnEvent) {
   const leftSeq = readNumber(left.seq);
   const rightSeq = readNumber(right.seq);
-  if (Number.isFinite(leftSeq) && Number.isFinite(rightSeq) && leftSeq !== rightSeq) {
+  const hasLeftSeq = typeof leftSeq === "number";
+  const hasRightSeq = typeof rightSeq === "number";
+  if (hasLeftSeq && hasRightSeq && leftSeq !== rightSeq) {
     return leftSeq - rightSeq;
   }
-  if (Number.isFinite(leftSeq) !== Number.isFinite(rightSeq)) {
-    return Number.isFinite(leftSeq) ? -1 : 1;
+  if (hasLeftSeq !== hasRightSeq) {
+    return hasLeftSeq ? -1 : 1;
   }
 
   const leftSegmentIndex = readNumber(left.segmentIndex);
   const rightSegmentIndex = readNumber(right.segmentIndex);
-  if (Number.isFinite(leftSegmentIndex) && Number.isFinite(rightSegmentIndex) && leftSegmentIndex !== rightSegmentIndex) {
+  const hasLeftSegmentIndex = typeof leftSegmentIndex === "number";
+  const hasRightSegmentIndex = typeof rightSegmentIndex === "number";
+  if (hasLeftSegmentIndex && hasRightSegmentIndex && leftSegmentIndex !== rightSegmentIndex) {
     return leftSegmentIndex - rightSegmentIndex;
   }
-  if (Number.isFinite(leftSegmentIndex) !== Number.isFinite(rightSegmentIndex)) {
-    return Number.isFinite(leftSegmentIndex) ? -1 : 1;
+  if (hasLeftSegmentIndex !== hasRightSegmentIndex) {
+    return hasLeftSegmentIndex ? -1 : 1;
   }
   const leftCreated = Date.parse(String(left.createdAt || "")) || 0;
   const rightCreated = Date.parse(String(right.createdAt || "")) || 0;
   if (leftCreated !== rightCreated) return leftCreated - rightCreated;
   const leftDelta = readNumber(left.deltaIndex);
   const rightDelta = readNumber(right.deltaIndex);
-  if (Number.isFinite(leftDelta) && Number.isFinite(rightDelta) && leftDelta !== rightDelta) {
+  if (typeof leftDelta === "number" && typeof rightDelta === "number" && leftDelta !== rightDelta) {
     return leftDelta - rightDelta;
   }
   return getEventIdentity(left).localeCompare(getEventIdentity(right));
@@ -987,12 +991,13 @@ export function projectOpenClawTurn(
   let interrupted = false;
   let failed = false;
   let answerSegmentIndex = 0;
-  let pendingAnswer: {
+  type PendingAnswer = {
     content: string;
     seq?: number;
     createdAt?: string;
     authoritative: boolean;
-  } | null = null;
+  };
+  let pendingAnswer: PendingAnswer | null = null;
 
   const pushRawActivity = (event: OpenClawTurnEvent) => {
     const activity = buildOpenClawActivity({
@@ -1107,22 +1112,20 @@ export function projectOpenClawTurn(
       const sanitized = sanitizeOpenClawAnswer(getEventContent(event), reasoningSoFar);
       if (!sanitized.trim()) continue;
 
-      const nextContent = event.kind === "assistant.message"
+      const currentPendingAnswer = pendingAnswer as PendingAnswer | null;
+      const nextContent: string = event.kind === "assistant.message"
         ? sanitized
         : event.replace
           ? sanitized
-          : pendingAnswer?.content
-            ? `${pendingAnswer.content}${sanitized}`
+          : currentPendingAnswer?.content
+            ? `${currentPendingAnswer.content}${sanitized}`
             : sanitized;
 
       pendingAnswer = {
         content: nextContent,
-        seq:
-          event.kind === "assistant.message"
-            ? readNumber(event.seq) ?? pendingAnswer?.seq
-            : readNumber(event.seq) ?? pendingAnswer?.seq,
-        createdAt: event.createdAt || pendingAnswer?.createdAt,
-        authoritative: event.kind === "assistant.message" || event.replace || pendingAnswer?.authoritative || false,
+        seq: readNumber(event.seq) ?? currentPendingAnswer?.seq,
+        createdAt: event.createdAt || currentPendingAnswer?.createdAt,
+        authoritative: event.kind === "assistant.message" || event.replace || currentPendingAnswer?.authoritative || false,
       };
       continue;
     }

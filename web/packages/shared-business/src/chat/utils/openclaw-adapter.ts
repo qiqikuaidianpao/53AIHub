@@ -1,4 +1,5 @@
 import type { ChatCompletionParams, ConversationControlParams, IConversationApi } from "../adapters/types";
+import type { OpenClawTurnEvent } from "../types";
 import {
   getOpenClawEventReasoningText,
   isOpenClawActivityEvent,
@@ -1279,7 +1280,7 @@ function buildOpenClawMessageRow(
   const hasPersistedAssistantAnswer = !isOpenClawDiscardableAssistantContent(persistedAssistantAnswer);
   const hasCanonicalAnswerEvent = primaryTurnEvents.some(hasOpenClawLedgerAnswerEvent);
 
-  const normalizedTurnEvents = primaryTurnEvents
+  const normalizedTurnEvents: OpenClawTurnEvent[] = primaryTurnEvents
     .filter((event) => !(hasPersistedAssistantAnswer && !hasCanonicalAnswerEvent && isOpenClawAnswerEvent(event)))
     .map((event) => ({
       eventId: event.id || `${conversationId}:${event.kind}:${event.seq || ""}:${event.createdAt || ""}`,
@@ -1302,10 +1303,11 @@ function buildOpenClawMessageRow(
       payload: { content: reasoningContent },
       createdAt: assistantMessage?.createdAt || userMessage.createdAt,
       source: "history",
+      messageSeq: answerSeq ? Math.max(answerSeq - 1, 1) : 1,
     });
   }
 
-  if (hasPersistedAssistantAnswer && !hasCanonicalAnswerEvent) {
+  if (assistantMessage && hasPersistedAssistantAnswer && !hasCanonicalAnswerEvent) {
     normalizedTurnEvents.push({
       eventId: `${conversationId}:history:answer:${assistantMessage.id || userMessage.id}`,
       sessionId: conversationId,
@@ -1377,7 +1379,7 @@ function buildOpenClawMessageRow(
     updated_at: Math.floor(updatedMs / 1000),
     process_records: outputProcessRecords,
     outputFiles: outputFilesFromOpenClawProcessRecords(outputProcessRecords),
-    rag_stats: null,
+    rag_stats: undefined,
     raw_user_message: userMessage,
     raw_assistant_message: assistantMessage,
     _openclawTurnStartSeq: getMessageSeq(userMessage) || undefined,

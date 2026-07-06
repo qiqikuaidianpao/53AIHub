@@ -13,8 +13,8 @@ export interface ChatCompletionParams {
   presence_penalty?: number;
   temperature?: number;
   top_p?: number;
-  knowledge_base_ids?: number[];
-  file_ids?: string[];
+  knowledge_base_ids?: Array<string | number>;
+  file_ids?: Array<string | number>;
   message_file_id?: string;
   solo_file_mode?: boolean;
   search_config?: any;
@@ -67,7 +67,7 @@ export interface IWorkflowApi {
       parameters: Record<string, any>;
       stream: boolean;
     },
-    options?: { signal?: AbortSignal }
+    options?: { signal?: AbortSignal; responseType?: string; onDownloadProgress?: (data: any) => void }
   ): Promise<any>;
 }
 

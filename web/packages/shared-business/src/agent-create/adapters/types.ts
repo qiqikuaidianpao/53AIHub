@@ -476,7 +476,7 @@ export interface IAgentCreateAdapter {
     model: string
     parameters: Record<string, any>
     stream: boolean
-  }, options?: { signal?: AbortSignal }) => Promise<any>
+  }, options?: { signal?: AbortSignal; responseType?: string; onDownloadProgress?: (data: any) => void }) => Promise<any>
 
   /** 上传文件 */
   uploadFile?: (file: File) => Promise<{

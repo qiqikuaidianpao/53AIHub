@@ -486,7 +486,7 @@ export function upsertOpenClawAnswerTimelineItemInMessage<
   syncOpenClawMessageDerivedState(message);
 }
 
-export function getOpenClawTimelineMaxSeq(items: OpenClawTimelineItem[] = []) {
+export function getOpenClawTimelineItemMaxSeq(items: OpenClawTimelineItem[] = []) {
   return items.reduce((maxSeq, item) => {
     const seq = typeof item.seq === "number" ? item.seq : Number(item.seq);
     return Number.isFinite(seq) ? Math.max(maxSeq, seq) : maxSeq;

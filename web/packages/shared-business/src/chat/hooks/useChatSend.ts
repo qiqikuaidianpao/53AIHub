@@ -304,7 +304,7 @@ export function useChatSend(conversationApi: IConversationApi) {
         specified_content: sendOptions.text || "",
         skill: skill || { skill_name: "", display_name: "" },
         process_records: [],
-        rag_stats: null,
+        rag_stats: undefined,
         rag_search_text: "",
         rag_temp: { type: "rag_search" },
         knowledge_graph: knowledgeGraph,

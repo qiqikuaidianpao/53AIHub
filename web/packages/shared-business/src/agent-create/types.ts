@@ -111,7 +111,7 @@ export interface UseAgentFormReturn {
   // 状态访问
   formData: AgentFormData
   agentType: string
-  agentId: number
+  agentId: string | number
   isNew: boolean
   loading: boolean
   saving: boolean

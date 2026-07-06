@@ -78,7 +78,7 @@ function ChatHeaderInner({
                 className="h-6 px-1 rounded flex items-center justify-center gap-1 cursor-pointer hover:bg-[#E1E2E3] text-[#4F5052]"
                 onClick={onShare}
               >
-                <SvgIcon name="share-two" size={18} color="#4F5052" stroke />
+                <SvgIcon name="share-two" size={18} color="#4F5052" />
               </div>
             </Tooltip>
           )}

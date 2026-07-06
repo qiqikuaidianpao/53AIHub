@@ -13,20 +13,15 @@ import {
   isOpenClawPendingConversationId,
   isOpenClawStatusAssistantContent,
   sanitizeOpenClawAnswer,
-  stripOpenClawReasoningPrefixOnly,
 } from "../utils/openclaw";
 import {
-  buildOpenClawActivities,
   buildOpenClawActivity,
   isOpenClawToolPlaceholderThinkingText,
-  mergeOpenClawActivities,
 } from "../utils/openclaw-activities";
 import { getOpenClawTimelineEventsFromLedgerPayload } from "../utils/openclaw-ledger";
 import {
-  buildOpenClawOutputFilesTimelineItem,
-  buildOpenClawTimelineItemFromActivity,
   getOutputFileKey,
-  getOpenClawTimelineMaxSeq as getOpenClawTimelineItemMaxSeq,
+  getOpenClawTimelineItemMaxSeq,
   mergeOpenClawTimelineItems,
   mergeOutputFiles,
   rebaseOpenClawMessageConversation,
@@ -382,7 +377,7 @@ export function convertReplayEventToSSE(
   actualMessageId?: string | number
 ): any | null {
   const event_type = event.event_type || (event as any).type;
-  const { payload, message_id } = event;
+  const { payload = {}, message_id } = event;
   const effectiveMessageId = actualMessageId || message_id || undefined;
 
   switch (event_type) {
@@ -516,7 +511,7 @@ function isOpenClawEphemeralAnswerFragment(value = ""): boolean {
   return textSignal.length > 0 ? textSignal.length <= 2 : signal.length <= 4;
 }
 
-function dropOpenClawEphemeralLastAnswerBeforeThinking(message: MessageWithStreamState): void {
+export function dropOpenClawEphemeralLastAnswerBeforeThinking(message: MessageWithStreamState): void {
   const answerKey = message._openclawLastAnswerItemKey;
   const items = message.openclawTimelineItems || [];
   if (!answerKey || !items.length) return;
@@ -538,7 +533,7 @@ function dropOpenClawEphemeralLastAnswerBeforeThinking(message: MessageWithStrea
   syncOpenClawMessageDerivedState(message);
 }
 
-function bumpOpenClawTrailingAnswerSeq(message: MessageWithStreamState): void {
+export function bumpOpenClawTrailingAnswerSeq(message: MessageWithStreamState): void {
   const answerKey = message._openclawLastAnswerItemKey;
   const items = message.openclawTimelineItems || [];
   if (!answerKey || !items.length) return;
@@ -2028,7 +2023,7 @@ function normalizeOutputFilesFromOpenClawPayload(payload: Record<string, any>): 
   ];
 }
 
-function mergeOpenClawStreamText(current: string, next: string, replace: boolean): string {
+export function mergeOpenClawStreamText(current: string, next: string, replace: boolean): string {
   if (!next) return current;
   if (replace) return next;
   if (!current) return next;
@@ -2075,7 +2070,7 @@ function readOpenClawTimelineSeq(data: any, delta: any): number | undefined {
   return undefined;
 }
 
-function upsertOpenClawAnswerTimelineItem(
+export function upsertOpenClawAnswerTimelineItem(
   message: MessageWithStreamState,
   content: string,
   data: any,

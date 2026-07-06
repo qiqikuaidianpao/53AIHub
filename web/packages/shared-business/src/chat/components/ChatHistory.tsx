@@ -102,7 +102,7 @@ const ChatHistory = forwardRef<ChatHistoryRef, ChatHistoryProps>(
       setVisible(false);
     }, [setCurrentState, setVisible]);
 
-    const menuItems = useCallback((item: ConversationInfo) => [
+    const menuItems = useCallback((_item: ConversationInfo) => [
       {
         key: "edit",
         icon: <SvgIcon name="edit" className="mr-1" />,

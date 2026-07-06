@@ -193,7 +193,7 @@ export function normalizeOpenClawCompatibleCustomConfig(
   agentType?: unknown,
 ): Record<string, any> {
   const metadata = getOpenClawCompatibleAgentMetadata(agentType)
-  const normalizedConfig = {
+  const normalizedConfig: Record<string, any> = {
     ...(customConfig || {}),
     agent_type: metadata.agentType,
     hostKind: metadata.hostKind,

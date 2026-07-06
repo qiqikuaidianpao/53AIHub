@@ -33,7 +33,7 @@ export function RelateAgents() {
     relateAgentsSettingRef.current?.open(item);
   };
 
-  const handleDelete = (agent_id: number) => {
+  const handleDelete = (agent_id: string | number) => {
     updateRelateAgents(
       relateAgents.filter((item) => item.agent_id !== agent_id),
     );

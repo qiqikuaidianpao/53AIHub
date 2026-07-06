@@ -3,7 +3,7 @@ import { Button, Form, Input, InputNumber, Select, Upload, message, Empty } from
 import { PlusOutlined, CloseOutlined, WarningOutlined, CopyOutlined, DownloadOutlined, LoadingOutlined } from '@ant-design/icons';
 import { BubbleAssistant } from '@km/hub-ui-x-react';
 import { isUrl, copyToClip, downloadFile } from '@km/shared-utils';
-import { useTranslation } from '../../i18n';
+import { useTranslation, type Lang } from '../../i18n';
 import { useConversationStore } from '../../stores';
 import { usePluginAdapters } from '../../context';
 import { useEmbedMode } from '../../hooks';
@@ -59,8 +59,8 @@ export interface CompletionViewProps {
   /** 自定义 Header 渲染函数 */
   renderHeader?: (props: {
     agentInfo: IAgentInfo;
-    lang: string;
-    setLang: (lang: string) => void;
+    lang: Lang;
+    setLang: (lang: Lang) => void;
     showGuide: boolean;
     onGuideChange: (show: boolean) => void;
   }) => React.ReactNode;
@@ -429,6 +429,10 @@ export const CompletionView = forwardRef<CompletionViewRef, CompletionViewProps>
         message.warning(t('chat.no_available_agent') || 'No available agent');
         return;
       }
+      if (!workflowApi) {
+        message.warning(t('chat.workflow_error') || 'Workflow error');
+        return;
+      }
 
       // 权限校验
       if (checkPermission) {
@@ -704,7 +708,9 @@ export const CompletionView = forwardRef<CompletionViewRef, CompletionViewProps>
         case 'array_image':
         case 'array_audio':
         case 'array_video':
-        case 'array_file':
+        case 'array_file': {
+          const fileSize = item.file_size ?? 0;
+          const fileAccept = item.file_accept ?? [];
           return (
             <Form.Item
               label={item.label}
@@ -716,7 +722,7 @@ export const CompletionView = forwardRef<CompletionViewRef, CompletionViewProps>
                   <Upload
                     fileList={item.value}
                     onChange={({ fileList }) => handleFileChange(index, fileList)}
-                    accept={item.file_accept?.map((ext) => `.${ext}`).join(',')}
+                    accept={fileAccept.map((ext) => `.${ext}`).join(',')}
                     maxCount={item.file_limit}
                     multiple={item.file_limit !== 1}
                     showUploadList={false}
@@ -747,17 +753,18 @@ export const CompletionView = forwardRef<CompletionViewRef, CompletionViewProps>
                 <div className="flex items-center gap-1 mt-2">
                   <WarningOutlined style={{ color: '#182B50', fontSize: 14 }} />
                   <span className="text-xs text-[#182B50]/80">
-                    {t('file.file_size', { size: item.file_size }) || `Max file size: ${item.file_size}MB`}
+                    {t('file.file_size', { size: fileSize }) || `Max file size: ${fileSize}MB`}
                   </span>
                 </div>
                 <div>
                   <span className="text-xs text-[#182B50]/80">
-                    {t('file.file_format', { format: item.file_accept?.join('、') }) || `Format: ${item.file_accept?.join(', ')}`}
+                    {t('file.file_format', { format: fileAccept.join(', ') }) || `Format: ${fileAccept.join(', ')}`}
                   </span>
                 </div>
               </div>
             </Form.Item>
           );
+        }
 
         case 'array_text':
           return (
@@ -935,6 +942,14 @@ export const CompletionView = forwardRef<CompletionViewRef, CompletionViewProps>
       );
     }
 
+    const relateAgents = agentInfo.settings_obj?.relate_agents || [];
+    const relatedSceneOutput = result.map((item) => ({
+      id: item.id,
+      label: item.label || item.variable || item.id,
+      value: String(item.value ?? ""),
+      variable: item.variable || item.id,
+    }));
+
     // Main Content Wrapper
     const contentWrapper = (
       <div className="flex-1 flex flex-col md:flex-row gap-3 p-3 overflow-y-auto bg-[#F5F6F7]">
@@ -995,12 +1010,12 @@ export const CompletionView = forwardRef<CompletionViewRef, CompletionViewProps>
                 )}
               </div>
               {/* RelatedScene - 显示关联智能体 */}
-              {features.showRelatedScene && agentInfo?.settings_obj?.relate_agents?.length > 0 && showResult && !loading && (
+              {features.showRelatedScene && relateAgents.length > 0 && showResult && !loading && (
                 <div className="sticky bottom-0 px-4 pb-2">
                   <RelatedScene
                     isWorkflow={true}
-                    output={result}
-                    relateAgents={agentInfo.settings_obj.relate_agents}
+                    output={relatedSceneOutput}
+                    relateAgents={relateAgents}
                     currentAgentId={agentInfo.agent_id}
                     onNextAgent={onNextAgent}
                     onInitAgent={onInitAgent}

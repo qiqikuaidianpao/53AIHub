@@ -19,7 +19,7 @@ export function Quotation({ type, files = [], onFileClick }: QuotationProps) {
 
   const isWebSearch = type === 'web_search';
 
-  const getIndex = (item: FileItem, sourceKey?: string) => {
+  const getIndex = (sourceKey?: string) => {
     const match = (sourceKey || '').replace('[Source:', '').replace(']', '').split('-');
     const index = isWebSearch ? match[1] : match[0];
     return Number(index) > -1 ? index : '';
@@ -28,9 +28,9 @@ export function Quotation({ type, files = [], onFileClick }: QuotationProps) {
   const fileList = useMemo(() => {
     const list = files.map(item => ({
       ...item,
-      index: getIndex(item, item.source_key || item.source)
+      index: getIndex(item.source_key || item.source)
     }));
-    return list.sort((a, b) => (a.index as number) - (b.index as number));
+    return list.sort((a, b) => Number(a.index) - Number(b.index));
   }, [files, isWebSearch]);
 
   if (!files.length) return null;
@@ -66,7 +66,7 @@ export function Quotation({ type, files = [], onFileClick }: QuotationProps) {
         <div className="space-y-1.5 mt-3">
           {fileList.map((item, index) => {
             const displayIndex = item.source_key || item.source
-              ? getIndex(item, item.source_key || item.source)
+              ? getIndex(item.source_key || item.source)
               : index + 1;
 
             // web_search 类型：外链

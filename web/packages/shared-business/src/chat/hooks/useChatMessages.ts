@@ -81,9 +81,13 @@ function processRecordsToOutputFiles(records: ProcessRecord[]): FileInfo[] {
 
   for (const record of records) {
     if (record.step_code === "output_files" && record.status === "completed" && record.data) {
-      const data = typeof record.data === "string" ? parseJson<{ files?: FileInfo[]; media_attachments?: FileInfo[] }>(record.data as string) : record.data;
-      if (Array.isArray(data?.files)) appendFiles(data.files);
-      if (Array.isArray(data?.media_attachments)) appendFiles(data.media_attachments);
+      const data = (typeof record.data === "string"
+        ? parseJson<{ files?: FileInfo[]; media_attachments?: FileInfo[] }>(record.data as string)
+        : record.data) as { files?: FileInfo[]; media_attachments?: FileInfo[] } | null | undefined;
+      const files = data?.files;
+      const mediaAttachments = data?.media_attachments;
+      if (Array.isArray(files)) appendFiles(files);
+      if (Array.isArray(mediaAttachments)) appendFiles(mediaAttachments);
     }
   }
 

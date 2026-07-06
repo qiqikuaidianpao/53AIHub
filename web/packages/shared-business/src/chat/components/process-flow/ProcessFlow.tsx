@@ -497,7 +497,7 @@ const ProcessFlow: React.FC<ProcessFlowHeaderProps> = ({
     if (manuallyToggled[stepId] !== undefined) {
       return manuallyToggled[stepId];
     }
-    return streaming;
+    return !!streaming;
   };
 
   // 切换步骤展开状态
@@ -530,8 +530,8 @@ const ProcessFlow: React.FC<ProcessFlowHeaderProps> = ({
     }
   }, [streaming, hasContent]);
 
-  const steps = useMemo(() => {
-    const shouldComplete = !streaming || hasContent;
+  const steps = useMemo<StepData[]>(() => {
+    const shouldComplete = !streaming || !!hasContent;
     const parsed = parseProcessSteps(processRecords, shouldComplete, t);
     // 流结束时修正所有 running 状态
     if (shouldComplete) {
@@ -541,7 +541,7 @@ const ProcessFlow: React.FC<ProcessFlowHeaderProps> = ({
         if (!config) return step;
         return {
           ...step,
-          status: "completed",
+          status: "completed" as StepStatus,
           title: config.completed.title,
           icon: config.completed.icon,
         };
@@ -1012,7 +1012,7 @@ const ProcessFlow: React.FC<ProcessFlowHeaderProps> = ({
                     </div>
                     <SvgIcon name={stepExpanded ? "up" : "down"} size={14} style={{ color: "#9ca3af" }} />
                   </div>
-                  {stepExpanded && step.data && (
+                  {stepExpanded && typeof step.data === "string" && (
                     <div className="x-skill-step-body">
                       {formatLlmContent(step.data as string)}
                     </div>

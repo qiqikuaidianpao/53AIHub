@@ -1,5 +1,31 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
-import type { PluginConfig, PluginAdapters, PluginContextValue } from "../types";
+import type { IAgentApi, IConversationApi, IUploadApi, IWorkflowApi } from "../adapters/types";
+
+export interface PluginConfig {
+  type: string;
+  title?: string;
+  features?: {
+    showRagStats?: boolean;
+    showFileUpload?: boolean;
+    showConversationList?: boolean;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
+export interface PluginAdapters {
+  conversationApi: IConversationApi;
+  agentApi: IAgentApi;
+  uploadApi?: IUploadApi;
+  workflowApi?: IWorkflowApi;
+  [key: string]: unknown;
+}
+
+export interface PluginContextValue {
+  config: PluginConfig;
+  adapters: PluginAdapters;
+  isLoggedIn: boolean;
+}
 
 const PluginContext = createContext<PluginContextValue | null>(null);
 

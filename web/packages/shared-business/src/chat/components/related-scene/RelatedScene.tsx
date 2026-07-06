@@ -1,4 +1,4 @@
-import { memo, useMemo } from "react";
+import { memo } from "react";
 import { SvgIcon } from "@km/shared-components-react";
 import { useTranslation } from "../../i18n";
 
@@ -68,7 +68,7 @@ function RelatedSceneInner({
   const handleNextAgent = (item: RelatedSceneItem) => {
     const parameters = getParameter();
     const mappedParams = Object.keys(item.field_mapping || {}).reduce((acc, key) => {
-      acc[key] = item.field_mapping[key].replace(/\{\#(.*?)\#\}/g, (match, p1) => {
+      acc[key] = item.field_mapping[key].replace(/\{\#(.*?)\#\}/g, (_, p1) => {
         return parameters.find((param) => param.variable === p1)?.value || "";
       });
       return acc;
@@ -96,7 +96,7 @@ function RelatedSceneInner({
         </div>
       ) : (
         <div className="flex items-center mb-3">
-          <SvgIcon name="related" stroke className="text-[#6B6C70]" />
+          <SvgIcon name="related" className="text-[#6B6C70]" />
           <p className="pl-2 text-sm text-[#6B6C70]">{t("related_scene.title") || "相关场景"}</p>
         </div>
       )}
