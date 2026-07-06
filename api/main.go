@@ -182,7 +182,11 @@ func main() {
 
 	// 启动图片下载工作器（降低并发，避免 DB 1040）
 	ctx := context.Background()
-	go image_asset.StartImageDownloadWorkers(ctx, 4, 10) // 4个worker，10/s限流（可按压测调优）
+	if common.IsRedisEnabled() {
+		go image_asset.StartImageDownloadWorkers(ctx, 4, 10) // 4个worker，10/s限流（可按压测调优）
+	} else {
+		logger.SysLogf("image download workers skipped: Redis is not enabled")
+	}
 
 	// 启动时恢复未完成的解析任务
 	if config.Server != "local" {

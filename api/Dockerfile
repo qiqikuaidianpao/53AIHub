@@ -32,8 +32,23 @@ RUN go install github.com/swaggo/swag/cmd/swag@v1.16.4 && \
 # 使用精简的Alpine镜像作为运行时
 FROM alpine:3.18
 
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY
+ARG http_proxy
+ARG https_proxy
+ARG no_proxy
+
 # 安装SQLite运行时依赖和C库（添加wget用于健康检查）
-RUN apk --no-cache add ca-certificates sqlite libc6-compat wget
+RUN apk --no-cache add ca-certificates sqlite libc6-compat wget curl
+
+# Preload tiktoken encodings for offline/runtime startup.
+ENV TIKTOKEN_CACHE_DIR=/app/tiktoken-cache
+RUN mkdir -p "${TIKTOKEN_CACHE_DIR}" && \
+    curl -fsSL "https://openaipublic.blob.core.windows.net/encodings/cl100k_base.tiktoken" \
+      -o "${TIKTOKEN_CACHE_DIR}/9b5ad71b2ce5302211f9c61530b329a4922fc6a4" && \
+    curl -fsSL "https://openaipublic.blob.core.windows.net/encodings/o200k_base.tiktoken" \
+      -o "${TIKTOKEN_CACHE_DIR}/fb374d419588a4632f3f557e76b4b70aebbca790"
 
 # 从构建阶段复制可执行文件
 COPY --from=builder /app/53AIHub /app/53AIHub
