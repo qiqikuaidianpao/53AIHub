@@ -134,6 +134,7 @@ const TAG_MAP: Record<string, string> = {
   hr: "hr",
   fence: "pre",
   hardbreak: "br",
+  softbreak: "br",
   inline: "span",
   text: "span",
   math_block: "div",

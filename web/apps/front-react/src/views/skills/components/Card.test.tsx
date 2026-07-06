@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import { createElement } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type { Skill } from '@/api/modules/skill/types'
 import SkillCard from './Card'
 
 const navigate = vi.fn()
@@ -29,6 +30,7 @@ vi.mock('@/components/StarRating', () => ({
 
 vi.mock('@/stores/modules/skills', () => ({
   useSkillsStore: () => ({
+    categorys: [],
     loadMySkillList,
     loadSkillList,
   }),
@@ -40,7 +42,7 @@ beforeEach(() => {
   loadSkillList.mockReset()
 })
 
-const baseSkill = {
+const baseSkill: Skill = {
   id: 'skill-1',
   eid: 174,
   source_type: 'zip',
@@ -48,6 +50,8 @@ const baseSkill = {
   sort: 0,
   display_name: '腾讯会议',
   description: '集成腾讯会议API',
+  logo: '',
+  group_ids: [],
   version: 'v1.0.0',
   usage_guide: '',
   origin_zip_name: '',
@@ -67,7 +71,7 @@ const baseSkill = {
   binding_id: 'binding-1',
   added: true,
   binding_status: 'enabled',
-} as const
+}
 
 describe('SkillCard', () => {
   it('shows the env settings icon button on my skills cards', () => {

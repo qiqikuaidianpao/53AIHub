@@ -14,7 +14,7 @@ function deferred<T>() {
 
 const mocks = vi.hoisted(() => {
   const frontStore = {
-    current_conversationid: 0,
+    current_conversationid: 0 as string | number,
     conversations: [] as any[],
     addConversation: vi.fn((conversation: any) => {
       frontStore.conversations = [...frontStore.conversations, conversation];
@@ -26,7 +26,7 @@ const mocks = vi.hoisted(() => {
     next_agent_prepare: {},
   };
   const sharedStore = {
-    current_conversationid: 0,
+    current_conversationid: 0 as string | number,
     conversations: [] as any[],
     addConversation: vi.fn((conversation: any) => {
       sharedStore.conversations = [...sharedStore.conversations, conversation];
@@ -53,7 +53,7 @@ const mocks = vi.hoisted(() => {
       use_cases: [],
       user_group_ids: [] as number[],
       owner_id: 0,
-    },
+    } as any,
     chatViewProps: [] as any[],
     openClawPanelProps: [] as any[],
     fileViewerProps: null as any,
@@ -611,10 +611,12 @@ describe("ChatContainer OpenClaw bootstrap", () => {
       expect(mocks.status).toHaveBeenCalledWith(2, { ignoreMessage: true });
     });
 
+    await waitFor(() => {
+      expect(mocks.sharedStore.setCurrentState).toHaveBeenCalledWith(2, 0);
+      expect(mocks.frontStore.setCurrentState).toHaveBeenCalledWith("2", 0, false);
+    });
     expect(mocks.currentConversation).not.toHaveBeenCalled();
     expect(mocks.conversations).not.toHaveBeenCalled();
-    expect(mocks.sharedStore.setCurrentState).toHaveBeenCalledWith(2, 0);
-    expect(mocks.frontStore.setCurrentState).toHaveBeenCalledWith("2", 0, false);
     const latestProps = mocks.chatViewProps.at(-1);
     expect(latestProps?.initialConversationId).toBeUndefined();
     expect(latestProps?.features).toMatchObject({

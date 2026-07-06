@@ -34,7 +34,7 @@ const fixedNavItemMap: Record<number, { path: string; label: string; logo: strin
 };
 
 /** 动态导航项类型 */
-interface NavItem {
+export interface NavItem {
   path: string;
   label: string;
   description: string;
@@ -82,6 +82,39 @@ function shortcutToNavItem(shortcut: AgentShortcutItem): NavItem {
   };
 }
 
+export function buildIndexSidebarNavItems(
+  shortcuts: AgentShortcutItem[],
+  hasKnowledgeBase: boolean,
+  hasAgent: boolean,
+): NavItem[] {
+  const seenFixedItems = new Set<number>();
+
+  // 纯 Dify 壳路线：不再注入默认固定项(小助理/AI搜问)，只展示用户自己的 shortcut
+  const sourceItems: AgentShortcutItem[] = [...shortcuts];
+
+  return sourceItems
+    .map(shortcutToNavItem)
+    .filter((item) => {
+      // 固定项去重：只保留第一个出现的
+      if (item.isFixed && item.agentUsage) {
+        if (seenFixedItems.has(item.agentUsage)) {
+          return false;
+        }
+        seenFixedItems.add(item.agentUsage);
+      }
+
+      // 知识搜问需要知识库权限
+      if (item.agentUsage === AGENT_USAGES.KM_AI_SEARCH) {
+        return hasKnowledgeBase;
+      }
+      // 非固定项需要智能体权限
+      if (!item.isFixed) {
+        return hasAgent;
+      }
+      return true;
+    });
+}
+
 export function IndexSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -99,54 +132,7 @@ export function IndexSidebar() {
 
   // 将快捷方式列表转换为导航项，并根据权限过滤
   const navItems = useMemo(() => {
-    const seenFixedItems = new Set<number>();
-
-    // 确保固定项存在：检查 shortcuts 中是否包含每个固定项，缺失则补充
-    const hasWorkAi = shortcuts.some(s => s.agent_usage === AGENT_USAGES.WORK_AI);
-    const hasKmSearch = shortcuts.some(s => s.agent_usage === AGENT_USAGES.KM_AI_SEARCH);
-
-    const defaultWorkAi: AgentShortcutItem = { id: 0, agent_id: '', agent_usage: AGENT_USAGES.WORK_AI, is_pinned: false, last_message_time: 0, last_message_content: '', agent_name: '', agent_logo: '', agent_description: '', channel_type: 0, created_time: 0, updated_time: 0 };
-    const defaultKmSearch: AgentShortcutItem = { id: 0, agent_id: '', agent_usage: AGENT_USAGES.KM_AI_SEARCH, is_pinned: false, last_message_time: 0, last_message_content: '', agent_name: '', agent_logo: '', agent_description: '', channel_type: 0, created_time: 0, updated_time: 0 };
-
-    let sourceItems: AgentShortcutItem[];
-    if (shortcuts.length === 0) {
-      // shortcuts 为空时，根据权限创建默认项
-      sourceItems = [defaultWorkAi];
-      if (hasKnowledgeBase) {
-        sourceItems.push(defaultKmSearch);
-      }
-    } else {
-      // shortcuts 不为空时，补充缺失的固定项
-      sourceItems = [...shortcuts];
-      if (!hasWorkAi) {
-        sourceItems.unshift(defaultWorkAi);
-      }
-      if (!hasKmSearch && hasKnowledgeBase) {
-        sourceItems.push(defaultKmSearch);
-      }
-    }
-
-    return sourceItems
-      .map(shortcutToNavItem)
-      .filter((item) => {
-        // 固定项去重：只保留第一个出现的
-        if (item.isFixed && item.agentUsage) {
-          if (seenFixedItems.has(item.agentUsage)) {
-            return false;
-          }
-          seenFixedItems.add(item.agentUsage);
-        }
-
-        // 知识搜问需要知识库权限
-        if (item.agentUsage === AGENT_USAGES.KM_AI_SEARCH) {
-          return hasKnowledgeBase;
-        }
-        // 非固定项需要智能体权限
-        if (!item.isFixed) {
-          return hasAgent;
-        }
-        return true;
-      });
+    return buildIndexSidebarNavItems(shortcuts, hasKnowledgeBase, hasAgent);
   }, [shortcuts, hasKnowledgeBase, hasAgent]);
 
   // 获取快捷方式列表
@@ -222,6 +208,7 @@ export function IndexSidebar() {
   // 删除快捷方式（二次确认）
   const handleDelete = (item: NavItem) => {
     if (!item.agentId) return;
+    const agentId = item.agentId;
 
     // 判断是否是当前正在聊的智能体
     const params = new URLSearchParams(location.search);
@@ -235,8 +222,8 @@ export function IndexSidebar() {
       cancelText: t('action.cancel'),
       onOk: async () => {
         try {
-          await agentShortcutsApi.delete(item.agentId);
-          setShortcuts(prev => prev.filter(s => s.agent_id !== item.agentId));
+          await agentShortcutsApi.delete(agentId);
+          setShortcuts(prev => prev.filter(s => s.agent_id !== agentId));
           message.success(t('action.delete_success'));
           // 如果删除的是当前正在聊的智能体，跳转到工作台AI
           if (isActiveAgent) {
@@ -329,6 +316,7 @@ export function IndexSidebar() {
         {/* 按API返回顺序渲染导航项 */}
         {!loading &&
           navItems.map((item) => {
+            const lastMessageTime = item.lastMessageTime ?? 0;
             // 自定义 active 判断
             const params = new URLSearchParams(location.search);
             const currentAgentId = params.get("agent_id");
@@ -388,9 +376,9 @@ export function IndexSidebar() {
                   <div className="flex items-center justify-between gap-2">
                     <p className="flex-1 text-sm text-[#1D1E1F] truncate">{item.label}</p>
                     {/* 时间和三个点互斥显示 */}
-                    {item.lastMessageTime > 0 && (
+                    {lastMessageTime > 0 && (
                       <span className={`text-xs text-[#9CA3AF] ${ menuItems.length > 0 ? 'group-hover:hidden' : '' }  `}>
-                        {getFormatTimeStamp(new Date(item.lastMessageTime).toISOString())}
+                        {getFormatTimeStamp(new Date(lastMessageTime).toISOString())}
                       </span>
                     )}
                     

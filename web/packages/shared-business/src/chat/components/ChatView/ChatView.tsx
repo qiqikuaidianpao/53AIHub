@@ -516,6 +516,13 @@ export const ChatView = forwardRef<ChatViewRef, ChatViewProps>(
     const visibleIsStreaming = features.openclaw
       ? openClawStopPending || (isStreaming && String(currentConversationId || "") === String(openClawStreamingConversationId || ""))
       : isStreaming;
+    const shouldKeepOpenClawShellDuringInitialLoading = Boolean(
+      features.openclaw &&
+      isInitialLoading &&
+      (isConversationLoading || openClawStopPending || isOpenClawRuntimeUnavailable)
+    );
+    const shouldShowInitialSpinner = isInitialLoading && !shouldKeepOpenClawShellDuringInitialLoading;
+    const shouldRenderChatSurface = !shouldShowInitialSpinner;
 
     // Share mode state
     const [shareMode, setShareMode] = useState(false);
@@ -1949,13 +1956,13 @@ export const ChatView = forwardRef<ChatViewRef, ChatViewProps>(
         {/* 消息区域容器 - 工作台入口布局无消息时居中 */}
         <div className={`flex-1 flex flex-col overflow-hidden ${features.indexWelcomeLayout && messageList.length === 0 && !visibleIsStreaming ? "items-center justify-center" : ""}`}>
           {/* 初始加载中 - 显示加载动画，隐藏消息列表和输入框 */}
-          {isInitialLoading && (
+          {shouldShowInitialSpinner && (
             <div className="flex-1 flex items-center justify-center">
               <Spin size="large" />
             </div>
           )}
           {/* ChatMessages - 工作台入口布局无消息时隐藏，初始加载时隐藏 */}
-          {!isInitialLoading && !(features.indexWelcomeLayout && messageList.length === 0 && !visibleIsStreaming) && (
+          {shouldRenderChatSurface && !(features.indexWelcomeLayout && messageList.length === 0 && !visibleIsStreaming && !isConversationLoading) && (
             <ChatMessages
               messageList={messageList as Message[]}
               agentInfo={agentInfo}
@@ -2031,7 +2038,7 @@ export const ChatView = forwardRef<ChatViewRef, ChatViewProps>(
         <SourceReferenceManager ref={sourceRefManagerRef} />
 
         {/* 工作台入口欢迎布局 - 输入框上方标题描述 */}
-        {!shareMode && !isInitialLoading && features.indexWelcomeLayout && messageList.length === 0 && !visibleIsStreaming && (
+        {!shareMode && shouldRenderChatSurface && features.indexWelcomeLayout && messageList.length === 0 && !visibleIsStreaming && !isConversationLoading && (
           <div className={`flex-none ${boxClassName || 'w-11/12 lg:w-4/5 max-w-[1200px] mx-auto'} mb-9`}>
             <h2 className="text-2xl text-center">
               {agentInfo?.name || ""}
@@ -2045,7 +2052,7 @@ export const ChatView = forwardRef<ChatViewRef, ChatViewProps>(
         )}
 
         {/* 输入区域 - 分享模式下隐藏，初始加载时隐藏 */}
-        {!shareMode && !isInitialLoading && (
+        {!shareMode && shouldRenderChatSurface && (
           <ChatInput
             inputValue={inputValue}
             onChange={setInputValue}
@@ -2105,7 +2112,7 @@ export const ChatView = forwardRef<ChatViewRef, ChatViewProps>(
         )}
 
         {/* 工作台入口欢迎布局 - 输入框下方 suggestions */}
-        {!shareMode && !isInitialLoading && features.indexWelcomeLayout && messageList.length === 0 && !visibleIsStreaming && agentInfo?.settings_obj?.suggested_questions?.some((item: any) => item?.content?.trim()) && (
+        {!shareMode && shouldRenderChatSurface && features.indexWelcomeLayout && messageList.length === 0 && !visibleIsStreaming && !isConversationLoading && agentInfo?.settings_obj?.suggested_questions?.some((item: any) => item?.content?.trim()) && (
           <div className={`flex-none ${boxClassName || 'w-11/12 lg:w-4/5 max-w-[1200px] mx-auto'}`}>
             <div className="text-sm text-[#1D1E1F] mt-10 mb-3">
               {t("chat.suggested_questions")}

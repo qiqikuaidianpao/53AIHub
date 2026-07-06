@@ -106,38 +106,32 @@ function UsageGuide({ useCases, defaultImage = DEFAULT_IMG, showChannel = false,
           </div>
         )}
       </div>
-      <div className={`${ plain ? 'bg-white mt-6' : 'p-6 bg-white rounded' }`}>
-        <h4 className="text-base text-[#1F2123]">{t("chat.usage_scene")}</h4>
-        <div className="flex gap-6 py-5 max-md:flex-col max-md:gap-2">
-          {scenes.map((item, index) => (
-            <div
-              key={index}
-              className="flex-1 px-4 text-center pt-3 pb-10 relative cursor-pointer group"
-            >
-              <img
-                className="max-w-[200px] mx-auto"
-                src={item.image}
-                alt={item.scene}
-                onError={handleImageError}
-              />
-              <h6 className="text-base text-[#1F2123] mt-5 break-words">
-                {item.scene}
-              </h6>
-              <p className="text-xs text-[#909193] mt-4 break-words">
-                {item.desc}
-              </p>
-            </div>
-          ))}
-        </div>
-        {scenes.length === 0 && (
-          <div className="flex items-center justify-center">
-            <Empty
-              image="/images/chat/completion_empty.png"
-              description={t("common.no_data")}
-            />
+      {scenes.length > 0 && (
+        <div className={`${ plain ? 'bg-white mt-6' : 'p-6 bg-white rounded' }`}>
+          <h4 className="text-base text-[#1F2123]">{t("chat.usage_scene")}</h4>
+          <div className="flex gap-6 py-5 max-md:flex-col max-md:gap-2">
+            {scenes.map((item, index) => (
+              <div
+                key={index}
+                className="flex-1 px-4 text-center pt-3 pb-10 relative cursor-pointer group"
+              >
+                <img
+                  className="max-w-[200px] mx-auto"
+                  src={item.image}
+                  alt={item.scene}
+                  onError={handleImageError}
+                />
+                <h6 className="text-base text-[#1F2123] mt-5 break-words">
+                  {item.scene}
+                </h6>
+                <p className="text-xs text-[#909193] mt-4 break-words">
+                  {item.desc}
+                </p>
+              </div>
+            ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
       {showChannel && (
         <div className={`${ plain ? 'bg-white mt-6' : 'p-6 bg-white rounded' }`}>
           <h4 className="text-base text-[#1F2123]">{t("chat.usage_channel")}</h4>
