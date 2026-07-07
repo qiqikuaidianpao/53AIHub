@@ -499,7 +499,7 @@ export function useChatSend() {
         }
       }
 
-      await chatApi.completions(completionsPayload, {
+      const streamResponse = await chatApi.completions(completionsPayload, {
         responseType: 'stream',
         onDownloadProgress: (e: any) => {
           // 检查请求是否已被新请求覆盖
@@ -518,6 +518,24 @@ export function useChatSend() {
         },
         signal: abortControllerRef.current.signal
       })
+      if (
+        requestId === requestIdRef.current &&
+        typeof streamResponse === 'string' &&
+        streamResponse.length > processedLength
+      ) {
+        processedLength = processStreamData(
+          { event: { target: { responseText: streamResponse } } },
+          processedLength,
+          currentMessageRef.current,
+          networkSearch,
+          formatRagStats,
+          {
+            appendContent: typewriter.appendContent,
+            appendReasoningContent: typewriter.appendReasoningContent
+          }
+        )
+        triggerMessageUpdate()
+      }
     } catch (err: any) {
       // 旧请求被覆盖时静默忽略错误（新请求会处理自己的错误）
       if (requestId !== requestIdRef.current) return

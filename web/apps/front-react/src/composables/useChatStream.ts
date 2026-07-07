@@ -610,13 +610,14 @@ export function useChatStream() {
     formatRagStats: (ragStats: any, processRecords: any[]) => any,
     options: ProcessStreamDataItemOptions = {}
   ): number => {
-    if (!e.event?.target || !message) return processedLength
+    if (!message) return processedLength
 
     if (networkSearch) {
       message.rag_temp.type = 'web_search'
     }
 
     const fullResponse = getStreamResponseText(e)
+    if (!fullResponse) return processedLength
     const newChunk = fullResponse.substring(processedLength)
     const newProcessedLength = fullResponse.length
 
