@@ -465,6 +465,24 @@ const MdRenderer: React.FC<MdRendererProps> = ({
         setDisplayContent(content);
       }
     } else {
+      const currentTypewriter = typewriterRef.current;
+      const canContinueTyping =
+        currentTypewriter &&
+        content.startsWith(displayContentRef.current) &&
+        displayContentRef.current !== content &&
+        (currentTypewriter.getQueueLength() > 0 || content.startsWith(lastContentRef.current));
+
+      if (canContinueTyping) {
+        if (content.startsWith(lastContentRef.current)) {
+          const diff = content.slice(lastContentRef.current.length);
+          lastContentRef.current = content;
+          if (diff) {
+            currentTypewriter.add(diff);
+          }
+        }
+        currentTypewriter.start();
+        return;
+      }
       // 非流式输出，清理 typewriter 并直接设置
       typewriterRef.current?.stop();
       displayContentRef.current = content;
