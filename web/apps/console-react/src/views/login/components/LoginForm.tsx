@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Button, Divider, Form, Input, message } from "antd";
-import { useUserStore } from "@/stores";
+import { useEnterpriseStore, useUserStore } from "@/stores";
 import { VerificationCodeInput } from "@/components/VerificationCodeInput";
 import { SvgIcon } from "@km/shared-components-react";
 import { WeChatLogin } from "./WeChatLogin";
 import { Policy } from "./Policy";
+import { useEnv } from "@/hooks/useEnv";
+import { useNavigate } from "react-router-dom";
 
 type LoginType = "mobile" | "wechat" | "password" | "bind_mobile";
 
@@ -38,6 +40,9 @@ const loginWayOptions: { type: LoginType; icon: string; label: string }[] = [
 export function LoginForm(props: LoginFormProps) {
   const { onForget, onApply, onList } = props;
   const userStore = useUserStore();
+  const enterpriseStore = useEnterpriseStore();
+  const { isOpLocalEnv, isPrivatePremEnv } = useEnv();
+  const navigate = useNavigate();
   const [form] = Form.useForm();
   const [type, setType] = useState<LoginType>("password");
   const [submitting, setSubmitting] = useState(false);
@@ -78,6 +83,16 @@ export function LoginForm(props: LoginFormProps) {
           });
           const t = (window as any).$t || ((key: string) => key);
           message.success(t("action_login_success"));
+          if (isOpLocalEnv || isPrivatePremEnv) {
+            await enterpriseStore.loadSelfInfo().catch(() => {});
+            if (window.parent && window.parent !== window) {
+              window.parent.location.replace(`${window.location.origin}/console#/index`);
+            } else {
+              navigate("/index", { replace: true });
+            }
+            form.resetFields();
+            return;
+          }
           onList();
           form.resetFields();
         } catch (err: any) {

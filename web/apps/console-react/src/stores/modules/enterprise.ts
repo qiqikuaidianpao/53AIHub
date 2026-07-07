@@ -246,6 +246,9 @@ export const useEnterpriseStore = create<EnterpriseState>((set, get) => ({
       const selfInfoRes = await enterpriseApi[saasRes.data.is_saas ? 'saas_self_info' : 'self_info']()
       const formattedInfo = get().getFormatEnterpriseData(selfInfoRes.data)
       set({ info: formattedInfo })
+      if (formattedInfo.eid) {
+        userStore.setEid(String(formattedInfo.eid))
+      }
 
       // 并行加载版本信息，不阻塞主流程
       if (!isPrivatePrem()) {

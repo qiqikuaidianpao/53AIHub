@@ -1,5 +1,6 @@
 import service from '../../config'
 import { handleError } from '../../error-handler'
+import { isOpLocal, isPrivatePrem } from '@/utils/config'
 
 /**
  * 与 Vue Console 端 `apps/console/src/apis/modules/user.ts` 对齐的 user 模块
@@ -74,11 +75,11 @@ export interface UserUpdateParams {
 
 export const userApi = {
   saas_login(data: SaasLoginParams & { verify_code?: string }) {
-    return service.post('/api/saas/auth/login', data)
+    return service.post(isOpLocal || isPrivatePrem ? '/api/login' : '/api/saas/auth/login', data)
   },
 
   saas_sms_login(data: SaasSmsLoginParams) {
-    return service.post('/api/saas/auth/sms_login', data)
+    return service.post(isOpLocal || isPrivatePrem ? '/api/sms_login' : '/api/saas/auth/sms_login', data)
   },
 
   saas_logout() {
@@ -98,7 +99,9 @@ export const userApi = {
   },
 
   reset_password(data: ResetPasswordParams) {
-    return service.post('/api/saas/auth/reset_password', data).catch(handleError)
+    return service
+      .post(isOpLocal || isPrivatePrem ? '/api/reset_password' : '/api/saas/auth/reset_password', data)
+      .catch(handleError)
   },
 
   list<T = unknown>(params: UserListParams) {
