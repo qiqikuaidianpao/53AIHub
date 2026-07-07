@@ -155,6 +155,32 @@ export function getIntentData(raw: unknown): IntentData | undefined {
   }
 }
 
+export interface ProcessStreamDataItemOptions {
+  appendContent?: (content: string) => void
+  appendReasoningContent?: (content: string) => void
+}
+
+function isAnswerErrorContent(content: string): boolean {
+  return content.startsWith('Upstream Error') || content.startsWith('Error: 当前应用模型余额不足')
+}
+
+export function appendAnswerContent(message: any, content: string): void {
+  if (!content) return
+  const failedTip = t('agent.failed_tip')
+  if (isAnswerErrorContent(content)) {
+    message.answer = failedTip
+  } else if (message.answer === failedTip) {
+    message.answer = content
+  } else {
+    message.answer += content
+  }
+}
+
+export function appendReasoningContent(message: any, content: string): void {
+  if (!content) return
+  message.reasoning_content = (message.reasoning_content || '') + content
+}
+
 /** 下载沙箱文件 */
 export const downloadSandboxFile = async (id: string | number, filename?: string) => {
   try {
@@ -459,7 +485,8 @@ export function convertReplayEventToSSE(event: AgentRunReplayEvent, actualMessag
 export function processStreamDataItem(
   data: any,
   message: any,
-  formatRagStats: (ragStats: any, processRecords: any[]) => any
+  formatRagStats: (ragStats: any, processRecords: any[]) => any,
+  options: ProcessStreamDataItemOptions = {}
 ): void {
   const { message_id } = data
 
@@ -531,17 +558,12 @@ export function processStreamDataItem(
     const reasoning_content = data.choices[0].delta.reasoning_content?.replaceAll('<decision>DONE</decision>', '') || ''
 
     if (content) {
-      const failedTip = t('agent.failed_tip')
-      if (content.startsWith('Upstream Error') || content.startsWith('Error: 当前应用模型余额不足')) {
-        message.answer = failedTip
-      } else if (message.answer === failedTip) {
-        message.answer = content
-      } else {
-        message.answer += content
-      }
+      if (options.appendContent && !isAnswerErrorContent(content)) options.appendContent(content)
+      else appendAnswerContent(message, content)
     }
     if (reasoning_content) {
-      message.reasoning_content += reasoning_content
+      if (options.appendReasoningContent) options.appendReasoningContent(reasoning_content)
+      else appendReasoningContent(message, reasoning_content)
     }
     if (
       message.answer?.trim() &&
@@ -572,7 +594,8 @@ export function useChatStream() {
     processedLength: number,
     message: any,
     networkSearch: boolean,
-    formatRagStats: (ragStats: any, processRecords: any[]) => any
+    formatRagStats: (ragStats: any, processRecords: any[]) => any,
+    options: ProcessStreamDataItemOptions = {}
   ): number => {
     if (!e.event?.target || !message) return processedLength
 
@@ -616,7 +639,7 @@ export function useChatStream() {
               return newProcessedLength
             }
 
-            processStreamDataItem(data, message, formatRagStats)
+            processStreamDataItem(data, message, formatRagStats, options)
             jsonBufferRef.current = ''
           } else {
             jsonBufferRef.current = jsonStr
@@ -628,7 +651,7 @@ export function useChatStream() {
             const data = parseJson(combinedJson)
 
             if (data) {
-              processStreamDataItem(data, message, formatRagStats)
+              processStreamDataItem(data, message, formatRagStats, options)
               jsonBufferRef.current = ''
             } else {
               jsonBufferRef.current = combinedJson

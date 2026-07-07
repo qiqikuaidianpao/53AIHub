@@ -36,7 +36,7 @@ import { useRef, useCallback } from 'react'
 import chatApi from '@/api/modules/chat/index'
 import recentUsedApi from '@/api/modules/recent-used'
 import type { RecentUsedSaveItem } from '@/api/modules/recent-used/types'
-import { useChatStream } from './useChatStream'
+import { appendAnswerContent, appendReasoningContent, useChatStream } from './useChatStream'
 import { useRagStats } from './useRagStats'
 import { t } from '@/locales'
 
@@ -172,6 +172,99 @@ function buildSpecifiedContentInfo(text: string) {
   }
 }
 
+const STREAM_TYPEWRITER_INTERVAL_MS = 24
+
+function takeLeadingChars(value: string, count: number): [string, string] {
+  const chars = Array.from(value)
+  return [chars.slice(0, count).join(''), chars.slice(count).join('')]
+}
+
+function getTypewriterBatchSize(queueLength: number): number {
+  if (queueLength > 300) return 8
+  if (queueLength > 120) return 5
+  return 3
+}
+
+function createStreamTypewriter(
+  message: any,
+  onUpdate: () => void
+) {
+  let contentQueue = ''
+  let reasoningQueue = ''
+  let timer: ReturnType<typeof setTimeout> | null = null
+  let drainResolvers: Array<() => void> = []
+
+  const finishDrain = () => {
+    if (contentQueue || reasoningQueue || timer) return
+    const resolvers = drainResolvers
+    drainResolvers = []
+    resolvers.forEach(resolve => resolve())
+  }
+
+  const schedule = () => {
+    if (timer || (!contentQueue && !reasoningQueue)) return
+    timer = setTimeout(tick, STREAM_TYPEWRITER_INTERVAL_MS)
+  }
+
+  const tick = () => {
+    timer = null
+    let changed = false
+
+    if (contentQueue) {
+      const [visible, rest] = takeLeadingChars(contentQueue, getTypewriterBatchSize(contentQueue.length))
+      contentQueue = rest
+      appendAnswerContent(message, visible)
+      changed = true
+    }
+
+    if (reasoningQueue) {
+      const [visible, rest] = takeLeadingChars(reasoningQueue, getTypewriterBatchSize(reasoningQueue.length))
+      reasoningQueue = rest
+      appendReasoningContent(message, visible)
+      changed = true
+    }
+
+    if (
+      message.answer?.trim() &&
+      message.reasoning_content?.trim() &&
+      message.reasoning_expanded
+    ) {
+      message.reasoning_expanded = false
+    }
+
+    if (changed) onUpdate()
+    if (contentQueue || reasoningQueue) schedule()
+    else finishDrain()
+  }
+
+  return {
+    appendContent(content: string) {
+      contentQueue += content
+      schedule()
+    },
+    appendReasoningContent(content: string) {
+      reasoningQueue += content
+      schedule()
+    },
+    drain() {
+      if (!contentQueue && !reasoningQueue && !timer) return Promise.resolve()
+      return new Promise<void>(resolve => {
+        drainResolvers.push(resolve)
+        schedule()
+      })
+    },
+    clear() {
+      contentQueue = ''
+      reasoningQueue = ''
+      if (timer) {
+        clearTimeout(timer)
+        timer = null
+      }
+      finishDrain()
+    }
+  }
+}
+
 export function useChatSend() {
   const { processStreamData, clearBuffer } = useChatStream()
   const { formatRagStats } = useRagStats()
@@ -182,6 +275,7 @@ export function useChatSend() {
   const currentMessageRef = useRef<any>(null)
   /** 请求锁：防止并发请求覆盖 currentMessageRef */
   const requestIdRef = useRef(0)
+  const typewriterRef = useRef<ReturnType<typeof createStreamTypewriter> | null>(null)
 
   const sendMessage = useCallback(async (options: SendMessageOptions) => {
     const {
@@ -219,6 +313,8 @@ export function useChatSend() {
     const hasLinkSpaces = linkSpaces.length > 0
 
     // ========== 清理上一次请求状态 ==========
+    typewriterRef.current?.clear()
+    typewriterRef.current = null
     clearBuffer()
     const requestId = ++requestIdRef.current
 
@@ -386,6 +482,11 @@ export function useChatSend() {
     let processedLength = 0
     let lastUpdateTime = 0
     const UPDATE_INTERVAL = 100 // 每 100ms 最多更新一次 UI
+    const triggerMessageUpdate = () => {
+      if (onMessageListChange) onMessageListChange(list => [...list], newMessage)
+    }
+    const typewriter = createStreamTypewriter(newMessage, triggerMessageUpdate)
+    typewriterRef.current = typewriter
     try {
       // 保存最近使用记录
       if (!isAgentType && links.length > 0) {
@@ -403,7 +504,10 @@ export function useChatSend() {
         onDownloadProgress: (e: any) => {
           // 检查请求是否已被新请求覆盖
           if (requestId !== requestIdRef.current) return
-          processedLength = processStreamData(e, processedLength, currentMessageRef.current, networkSearch, formatRagStats)
+          processedLength = processStreamData(e, processedLength, currentMessageRef.current, networkSearch, formatRagStats, {
+            appendContent: typewriter.appendContent,
+            appendReasoningContent: typewriter.appendReasoningContent
+          })
 
           // 节流触发 React 重渲染
           const now = Date.now()
@@ -424,14 +528,18 @@ export function useChatSend() {
           currentMessage.answer = err.response?.data || t('response_code.network_error')
           currentMessage.error = true
         }
+      } else {
+        typewriter.clear()
       }
       throw err
     } finally {
       // 只有当前请求才更新状态
       if (requestId === requestIdRef.current) {
+        await typewriter.drain()
         const currentMessage = currentMessageRef.current
         if (currentMessage) currentMessage.loading = false
         abortControllerRef.current = null
+        if (typewriterRef.current === typewriter) typewriterRef.current = null
         clearBuffer()
         if (onMessageListChange) onMessageListChange(list => [...list], newMessage)
       }
@@ -440,6 +548,8 @@ export function useChatSend() {
 
   /** 停止生成 */
   const handleStop = useCallback(() => {
+    typewriterRef.current?.clear()
+    typewriterRef.current = null
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
       abortControllerRef.current = null
