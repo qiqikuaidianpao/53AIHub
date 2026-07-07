@@ -181,6 +181,19 @@ export function appendReasoningContent(message: any, content: string): void {
   message.reasoning_content = (message.reasoning_content || '') + content
 }
 
+function getStreamResponseText(e: any): string {
+  const candidates = [
+    e?.event?.target?.responseText,
+    e?.event?.target?.response,
+    e?.progressEvent?.event?.target?.responseText,
+    e?.progressEvent?.event?.target?.response,
+    e?.target?.responseText,
+    e?.target?.response
+  ]
+  const value = candidates.find(item => typeof item === 'string')
+  return value || ''
+}
+
 /** 下载沙箱文件 */
 export const downloadSandboxFile = async (id: string | number, filename?: string) => {
   try {
@@ -603,7 +616,7 @@ export function useChatStream() {
       message.rag_temp.type = 'web_search'
     }
 
-    const fullResponse = e.event.target.response || ''
+    const fullResponse = getStreamResponseText(e)
     const newChunk = fullResponse.substring(processedLength)
     const newProcessedLength = fullResponse.length
 
