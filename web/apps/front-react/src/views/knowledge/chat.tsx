@@ -868,7 +868,7 @@ export function KnowledgeChatView() {
 
         const currentMessage = list[targetIndex];
         const preserveCompletionStream =
-          currentMessage._completionStreamActive && currentMessage.loading;
+          currentMessage._completionStreamActive || isStreaming;
 
         const message = {
           ...currentMessage,
@@ -905,7 +905,7 @@ export function KnowledgeChatView() {
         return newList;
       });
     }
-  }, [agentRunEvents, agentRunCurrentRun, updateMessageList, formatRagStats]);
+  }, [agentRunEvents, agentRunCurrentRun, updateMessageList, formatRagStats, isStreaming]);
 
   // 监听路由重置事件
   useEffect(() => {

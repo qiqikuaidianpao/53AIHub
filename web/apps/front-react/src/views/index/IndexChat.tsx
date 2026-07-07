@@ -1327,7 +1327,7 @@ export function IndexChatView() {
 
         const currentMessage = list[targetIndex]
         const preserveCompletionStream =
-          currentMessage._completionStreamActive && currentMessage.loading
+          currentMessage._completionStreamActive || isStreaming
 
         const message = {
           ...currentMessage,
@@ -1364,7 +1364,7 @@ export function IndexChatView() {
         return newList
       })
     }
-  }, [agentRunEvents, agentRunCurrentRun, updateMessageList, formatRagStats])
+  }, [agentRunEvents, agentRunCurrentRun, updateMessageList, formatRagStats, isStreaming])
 
   /**
    * 组件初始化
