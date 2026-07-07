@@ -1,6 +1,6 @@
 ﻿// packages/shared-business/src/chat/components/message/AssistantMessage.tsx
 
-import { memo, useState, useCallback, useMemo } from "react";
+import { memo, useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { Checkbox, message as antdMessage } from "antd";
 import { BubbleAssistant } from "@km/hub-ui-x-react";
 import { MessageMenu } from "../MessageMenu";
@@ -105,6 +105,126 @@ const FEEDBACK_OPTIONS_UNSATISFIED = new Map([
   ["不相关", false],
   ["其它", false],
 ]);
+
+const STREAM_DISPLAY_INTERVAL_MS = 24;
+
+function takeLeadingChars(value: string, count: number): [string, string] {
+  const chars = Array.from(value);
+  return [chars.slice(0, count).join(""), chars.slice(count).join("")];
+}
+
+function getDisplayBatchSize(queueLength: number): number {
+  if (queueLength > 300) return 8;
+  if (queueLength > 120) return 5;
+  return 3;
+}
+
+function useSmoothStreamingContent(
+  messageId: string,
+  content: string,
+  smooth: boolean,
+) {
+  const [displayContent, setDisplayContent] = useState(content);
+  const [isTyping, setIsTyping] = useState(false);
+  const displayRef = useRef(content);
+  const queueRef = useRef("");
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const messageIdRef = useRef(messageId);
+
+  const clearTimer = useCallback(() => {
+    if (!timerRef.current) return;
+    clearTimeout(timerRef.current);
+    timerRef.current = null;
+  }, []);
+
+  const tick = useCallback(() => {
+    timerRef.current = null;
+
+    if (!queueRef.current) {
+      setIsTyping(false);
+      return;
+    }
+
+    const [visible, rest] = takeLeadingChars(
+      queueRef.current,
+      getDisplayBatchSize(queueRef.current.length),
+    );
+    queueRef.current = rest;
+
+    setDisplayContent(prev => {
+      const next = prev + visible;
+      displayRef.current = next;
+      return next;
+    });
+
+    if (rest) {
+      timerRef.current = setTimeout(tick, STREAM_DISPLAY_INTERVAL_MS);
+    } else {
+      setIsTyping(false);
+    }
+  }, []);
+
+  const schedule = useCallback(() => {
+    if (timerRef.current || !queueRef.current) return;
+    setIsTyping(true);
+    timerRef.current = setTimeout(tick, STREAM_DISPLAY_INTERVAL_MS);
+  }, [tick]);
+
+  useEffect(() => {
+    if (!smooth) {
+      clearTimer();
+      queueRef.current = "";
+      displayRef.current = content;
+      setDisplayContent(content);
+      setIsTyping(false);
+      messageIdRef.current = messageId;
+      return;
+    }
+
+    if (messageIdRef.current !== messageId) {
+      messageIdRef.current = messageId;
+      if (!content.startsWith(displayRef.current)) {
+        clearTimer();
+        queueRef.current = "";
+        displayRef.current = content;
+        setDisplayContent(content);
+        setIsTyping(false);
+        return;
+      }
+    }
+
+    const visibleAndQueued = displayRef.current + queueRef.current;
+    if (content === visibleAndQueued) {
+      schedule();
+      return;
+    }
+
+    if (content.startsWith(visibleAndQueued)) {
+      queueRef.current += content.slice(visibleAndQueued.length);
+      schedule();
+      return;
+    }
+
+    if (content.startsWith(displayRef.current)) {
+      queueRef.current = content.slice(displayRef.current.length);
+      schedule();
+      return;
+    }
+
+    clearTimer();
+    queueRef.current = "";
+    displayRef.current = content;
+    setDisplayContent(content);
+    setIsTyping(false);
+  }, [messageId, content, smooth, clearTimer, schedule]);
+
+  useEffect(() => clearTimer, [clearTimer]);
+
+  return {
+    displayContent,
+    isTyping,
+  };
+}
 
 function getOpenClawAssistantContent(message: Message) {
   const projectedAnswer = message.openclawProjection?.visibleAnswer?.trim();
@@ -404,12 +524,20 @@ function AssistantMessageInner({
   }), [features?.menu]);
 
   const assistantMenuContent = openclaw ? getOpenClawAssistantContent(message) : (message.answer || message.content || "");
-  const showMenu = !message.loading && !isShareMode;
   const showProcessFlow = features?.processFlow && message.process_records && message.process_records.length > 0;
   const showOutputFiles = !openclaw && features?.outputFiles && message.outputFiles && message.outputFiles.length > 0;
   const showQuotation = features?.sourceRef && message.rag_stats?.file_quotations && message.rag_stats.file_quotations.length > 0;
   const answerRemarksConfig = agentInfo?.settings?.answer_remarks_config;
   const showAnswerRemarks = Boolean(answerRemarksConfig?.enable && !message.loading);
+  const assistantAnswer = message.answer || "";
+  const shouldSmoothAnswer = !message.error && !openclaw && !isShareMode && isLastMessage;
+  const { displayContent: displayAnswer, isTyping: isAnswerTyping } = useSmoothStreamingContent(
+    String(message.id ?? ""),
+    assistantAnswer,
+    shouldSmoothAnswer,
+  );
+  const assistantStreaming = message.loading || (isStreaming && isLastMessage) || isAnswerTyping;
+  const showMenu = !assistantStreaming && !isShareMode;
 
   if (
     openclaw &&
@@ -503,8 +631,8 @@ function AssistantMessageInner({
 
       <div className="flex-1 overflow-hidden">
         <BubbleAssistant
-          content={message.answer || ""}
-          streaming={message.loading || (isStreaming && isLastMessage)}
+          content={displayAnswer}
+          streaming={assistantStreaming}
           reasoning={message.reasoning_content}
           reasoningExpanded={message.reasoning_expanded}
           avatar={agentInfo?.logo}
@@ -520,7 +648,7 @@ function AssistantMessageInner({
               <ProcessFlowHeader
                 t={t}
                 processRecords={message.process_records}
-                streaming={message.loading || (isStreaming && isLastMessage)}
+                streaming={assistantStreaming}
                 hasContent={!!(message.answer || message.content)}
                 getKnowledgeSearchFiles={() => message.rag_stats?.files_search || []}
                 onOpenKnow={handleOpenKnow}
