@@ -1,10 +1,11 @@
 # Dify Shell 53AIHub Release Runbook
 
 This runbook is for the Dify shell fork maintained at `qiqikuaidianpao/53AIHub`.
-It documents a reversible production switch from the current 53AIHub image to the
-server-built candidate image. It does not mean the switch has been executed.
+It documents the reversible production switch from the original 53AIHub image to
+the Dify shell image, plus the current accepted production tag.
 
 Last candidate smoke verification: 2026-07-06.
+Production switch and stability verification: 2026-07-07.
 
 ## Verified State
 
@@ -52,6 +53,34 @@ tiktoken cache exists in /app/tiktoken-cache
 REDIS_CONN empty smoke: no repeated "dequeue error: Redis is not enabled"
 ```
 
+Accepted production image after the 2026-07-07 switch:
+
+```text
+53aihub-dify-shell:prod-20260707
+image id: sha256:9e6a382d679055f113f8a7f55071ac359de96f0122478eece9049a2077dd5aea
+source tag: 53aihub-dify-shell:candidate-20260706-104413b
+```
+
+Production stability check after the switch:
+
+```text
+duration: 10 minutes
+samples: 60
+failed samples: 0
+container health: healthy
+container restart_count: 0
+panic/fatal log count: 0
+Redis dequeue error count: 0
+token encoder error count: 0
+```
+
+Production persistence after acceptance:
+
+```text
+/opt/53aihub-v0.4.0/docker/.env
+HUB_IMAGE=53aihub-dify-shell:prod-20260707
+```
+
 ## Hard Boundaries
 
 Do not run these commands during release or rollback:
@@ -84,6 +113,7 @@ export PROD_DIR=/opt/53aihub-v0.4.0/docker
 export BACKUP_ROOT=/opt/53aihub-v0.4.0/release-backups
 export CURRENT_IMAGE=53aihub-with-tiktoken:final
 export CANDIDATE_IMAGE=53aihub-dify-shell:candidate-20260706-104413b
+export PROD_IMAGE=53aihub-dify-shell:prod-20260707
 export HEALTH_URL=http://127.0.0.1:3000/health
 ```
 
