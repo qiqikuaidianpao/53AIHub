@@ -1325,8 +1325,12 @@ export function IndexChatView() {
         const targetIndex = list.findIndex((m: any) => m.id === messageId)
         if (targetIndex === -1) return list
 
+        const currentMessage = list[targetIndex]
+        const preserveCompletionStream =
+          currentMessage._completionStreamActive && currentMessage.loading
+
         const message = {
-          ...list[targetIndex],
+          ...currentMessage,
           process_records: [],
           skillRunItems: [],
           outputFiles: [],
@@ -1342,8 +1346,17 @@ export function IndexChatView() {
           if (sseData) {
             processStreamDataItem(sseData, message, formatRagStats)
           } else if (event.type === 'message.completed' || event.event_type === 'message.completed') {
-            message.answer = event.payload.answer;
+            if (!preserveCompletionStream) {
+              message.answer = event.payload.answer
+            }
           }
+        }
+
+        if (preserveCompletionStream) {
+          message.answer = currentMessage.answer
+          message.reasoning_content = currentMessage.reasoning_content
+          message.reasoning_expanded = currentMessage.reasoning_expanded
+          message.loading = currentMessage.loading
         }
 
         const newList = [...list]

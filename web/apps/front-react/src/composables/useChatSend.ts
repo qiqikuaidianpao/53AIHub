@@ -425,6 +425,7 @@ export function useChatSend() {
       submitBtnDisabled: true,
       feedbackSuccessful: false,
       knowledge_graph: knowledgeGraph,
+      _completionStreamActive: true,
     }
 
     currentMessageRef.current = newMessage
@@ -555,7 +556,10 @@ export function useChatSend() {
       if (requestId === requestIdRef.current) {
         await typewriter.drain()
         const currentMessage = currentMessageRef.current
-        if (currentMessage) currentMessage.loading = false
+        if (currentMessage) {
+          currentMessage._completionStreamActive = false
+          currentMessage.loading = false
+        }
         abortControllerRef.current = null
         if (typewriterRef.current === typewriter) typewriterRef.current = null
         clearBuffer()
