@@ -107,6 +107,9 @@ const FEEDBACK_OPTIONS_UNSATISFIED = new Map([
 ]);
 
 const STREAM_DISPLAY_INTERVAL_MS = 24;
+const STREAM_DISPLAY_CACHE_TTL_MS = 30_000;
+
+const streamDisplayCache = new Map<string, { content: string; updatedAt: number }>();
 
 function takeLeadingChars(value: string, count: number): [string, string] {
   const chars = Array.from(value);
@@ -123,10 +126,12 @@ function useSmoothStreamingContent(
   messageId: string,
   content: string,
   smooth: boolean,
+  initialDisplayContent?: string,
 ) {
-  const [displayContent, setDisplayContent] = useState(content);
+  const initialContent = initialDisplayContent ?? content;
+  const [displayContent, setDisplayContent] = useState(initialContent);
   const [isTyping, setIsTyping] = useState(false);
-  const displayRef = useRef(content);
+  const displayRef = useRef(initialContent);
   const queueRef = useRef("");
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const messageIdRef = useRef(messageId);
@@ -224,6 +229,27 @@ function useSmoothStreamingContent(
     displayContent,
     isTyping,
   };
+}
+
+function getSmoothDisplayKey(message: Message): string {
+  const rawMessage = message as any;
+  return [
+    rawMessage.conversation_id ?? rawMessage.conversationId ?? "",
+    rawMessage.question ?? rawMessage.query ?? rawMessage.content ?? "",
+  ].map(value => String(value)).join("|");
+}
+
+function getCachedDisplayContent(cacheKey: string, content: string): string | undefined {
+  const cached = streamDisplayCache.get(cacheKey);
+  if (!cached) return undefined;
+  if (Date.now() - cached.updatedAt > STREAM_DISPLAY_CACHE_TTL_MS) {
+    streamDisplayCache.delete(cacheKey);
+    return undefined;
+  }
+  if (!cached.content || !content.startsWith(cached.content) || cached.content.length >= content.length) {
+    return undefined;
+  }
+  return cached.content;
 }
 
 function getOpenClawAssistantContent(message: Message) {
@@ -531,13 +557,24 @@ function AssistantMessageInner({
   const showAnswerRemarks = Boolean(answerRemarksConfig?.enable && !message.loading);
   const assistantAnswer = message.answer || "";
   const shouldSmoothAnswer = !message.error && !openclaw && !isShareMode && isLastMessage;
+  const smoothDisplayKey = getSmoothDisplayKey(message);
+  const cachedDisplayAnswer = shouldSmoothAnswer ? getCachedDisplayContent(smoothDisplayKey, assistantAnswer) : undefined;
   const { displayContent: displayAnswer, isTyping: isAnswerTyping } = useSmoothStreamingContent(
     String(message.id ?? ""),
     assistantAnswer,
     shouldSmoothAnswer,
+    cachedDisplayAnswer,
   );
   const assistantStreaming = message.loading || (isStreaming && isLastMessage) || isAnswerTyping;
   const showMenu = !assistantStreaming && !isShareMode;
+
+  useEffect(() => {
+    if (!shouldSmoothAnswer) return;
+    streamDisplayCache.set(smoothDisplayKey, {
+      content: displayAnswer,
+      updatedAt: Date.now(),
+    });
+  }, [shouldSmoothAnswer, smoothDisplayKey, displayAnswer]);
 
   if (
     openclaw &&
