@@ -12,7 +12,7 @@ import { DownOutlined } from "@ant-design/icons";
 
 // 共享组件
 import { SvgIcon } from "@km/shared-components-react";
-import { BubbleList, BubbleUser, BubbleAssistant } from "@km/hub-ui-x-react";
+import { BubbleList, BubbleUser } from "@km/hub-ui-x-react";
 import { ProcessFlowHeader, ChatConfigProvider, type KnowledgePanelData } from "@km/shared-business";
 import { cacheManager as cache, CacheMode, eventBus } from "@km/shared-utils";
 
@@ -43,6 +43,7 @@ import { transformAgentInfo } from "@/api/modules/agents/transform";
 import Header from "@/components/Layout/Header";
 import { Sender } from "@/components/Chat/Sender";
 import { FeedbackPanel } from "@/components/Chat/FeedbackPanel";
+import { SmoothStreamingBubbleAssistant } from "@/components/Chat/SmoothStreamingBubbleAssistant";
 import { ShareHeader } from "@/components/Chat/ShareHeader";
 import { ThinkKnowledge } from "@/components/Chat/ThinkKnowledge";
 import { Quotation } from "@/components/Chat/Quotation";
@@ -1151,11 +1152,13 @@ export function KnowledgeChatView() {
                       />
                     )}
                     <div className="flex-1 overflow-hidden">
-                      <BubbleAssistant
+                      <SmoothStreamingBubbleAssistant
+                        messageId={msg.id}
                         content={msg.answer || msg.content}
                         reasoning={msg.reasoning_content}
                         reasoningExpanded={msg.reasoning_expanded}
                         streaming={msg.loading}
+                        smooth={!isShareMode && msg.id === messageList[messageList.length - 1]?.id}
                         alwaysShowMenu={
                           msg.id === messageList[messageList.length - 1]?.id ||
                           msg.feedbackVisible

@@ -52,7 +52,7 @@ import { useRagStats } from "@/composables/useRagStats";
 // ============ Components ============
 import Header from "@/components/Layout/Header";
 import { Sender } from "@/components/Chat/Sender";
-import { BubbleList, BubbleUser, BubbleAssistant } from "@km/hub-ui-x-react";
+import { BubbleList, BubbleUser } from "@km/hub-ui-x-react";
 import { FeedbackPanel } from "@/components/Chat/FeedbackPanel";
 import { ShareHeader } from "@/components/Chat/ShareHeader";
 import { ThinkKnowledge } from "@/components/Chat/ThinkKnowledge";
@@ -60,6 +60,7 @@ import { Quotation } from "@/components/Chat/Quotation";
 import { Chunk } from "@/components/Chat/Chunk";
 import { Graph } from "@/components/Chat/Graph";
 import { MessageMenu } from "@/components/Chat/MessageMenu";
+import { SmoothStreamingBubbleAssistant } from "@/components/Chat/SmoothStreamingBubbleAssistant";
 import { ProcessFlowHeader, ChatConfigProvider, type KnowledgePanelData } from "@km/shared-business";
 import { SpecifiedFiles } from "@/components/Chat/SpecifiedFiles";
 import { OutputFiles } from "@/components/Chat/OutputFiles";
@@ -1580,11 +1581,13 @@ export function IndexChatView() {
                       />
                     )}
                     <div className="flex-1 overflow-hidden">
-                      <BubbleAssistant
+                      <SmoothStreamingBubbleAssistant
+                        messageId={msg.id}
                         content={msg.answer}
                         reasoning={msg.reasoning_content}
                         reasoningExpanded={msg.reasoning_expanded}
                         streaming={msg.loading}
+                        smooth={!isShareMode && index === messageList.length - 1}
                         alwaysShowMenu={
                           index === messageList.length - 1 ||
                           msg.feedbackVisible
