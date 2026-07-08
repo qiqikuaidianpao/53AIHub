@@ -148,3 +148,93 @@ The production compose directory remains:
 ```text
 /opt/53aihub-v0.4.0/docker
 ```
+
+## 2026-07-08 Stats Hardening Follow-up
+
+Commit:
+
+```text
+c734956 fix(api): harden message stats increments
+```
+
+Production image:
+
+```text
+53aihub-dify-shell:prod-20260708-stats-c734956
+```
+
+Reason:
+
+During post-deployment production validation, one non-blocking MySQL deadlock was observed while incrementing `message_stats.total_questions` after a successful chat response:
+
+```text
+Error 1213 (40001): Deadlock found when trying to get lock; try restarting transaction
+```
+
+The user-facing answer succeeded, but the stats increment could be lost and the production log emitted an error. The follow-up fix:
+
+- Adds a composite unique invariant for one stats row per `(eid, agent_id, stat_date)`.
+- Adds schema migrations for MySQL, PostgreSQL, and SQLite.
+- Adds retry handling for deadlock / lock timeout / SQLite lock errors.
+- Validates the stats field name before building the increment expression.
+
+Validation:
+
+```text
+Local:
+go test ./...
+
+Server candidate:
+image 53aihub-dify-shell:candidate-20260708-c734956 built successfully
+isolated MySQL smoke returned /health 200
+/ and /console returned 200
+message_stats unique index idx_message_stats_eid_agent_date existed
+duplicate_groups = 0
+
+Production:
+53aihub image = 53aihub-dify-shell:prod-20260708-stats-c734956
+container health = healthy
+/health, /agent, /console returned 200
+/api/images/agent/icon_caishui.png returned 200 image/png
+/api/images/agent/icon_tishi.png returned 200 image/png
+message_stats unique index idx_message_stats_eid_agent_date existed
+duplicate_groups = 0
+recent logs had no deadlock / Error 1213 / stats increment failure / dpanic matches
+```
+
+Browser validation after production switch:
+
+```text
+/agent:
+7 expected agents present
+default agent image count = 0
+api agent image count = 7
+broken images = 0
+
+/console#/agent:
+agent table present
+7 expected custom agents present
+default agent image count = 0
+broken images = 0
+browser console error/warn count = 0
+```
+
+Rollback backup:
+
+```text
+/opt/53aihub-v0.4.0/release-backups/20260708-143202-before-stats-c734956
+```
+
+Previous production image:
+
+```text
+53aihub-dify-shell:prod-20260707-stream-smooth-a4782c6
+```
+
+Rollback outline:
+
+```bash
+cd /opt/53aihub-v0.4.0/docker
+sed -i 's#^HUB_IMAGE=.*#HUB_IMAGE=53aihub-dify-shell:prod-20260707-stream-smooth-a4782c6#' .env
+docker compose --env-file .env -f docker-compose.yml up -d --no-deps web
+```
