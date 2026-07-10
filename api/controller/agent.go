@@ -647,7 +647,7 @@ func GetAgents(c *gin.Context) {
 		channelTypes := splitChannelTypesString(agentListRequest.ChannelTypes)
 		agentTypes := splitAgentTypesString(agentListRequest.AgentTypes)
 		agentUsages := splitAgentUsagesString(agentListRequest.AgentUsages)
-		total, agents, err := model.GetAgentListWithIDs(
+		total, agents, err := model.GetEnabledAgentListWithIDs(
 			eid, agentListRequest.Keyword, agentListRequest.GroupId,
 			nil, channelTypes, agentTypes, agentUsages, agentListRequest.Offset, agentListRequest.Limit)
 		if err != nil {
@@ -677,8 +677,12 @@ func GetAgents(c *gin.Context) {
 	agentTypes := splitAgentTypesString(agentListRequest.AgentTypes)
 	agentUsages := splitAgentUsagesString(agentListRequest.AgentUsages)
 
-	if common.IsAdmin(c) || len(agentUsages) > 0 {
+	if common.IsAdmin(c) {
 		total, agents, err = model.GetAgentListWithIDs(
+			eid, agentListRequest.Keyword, agentListRequest.GroupId,
+			nil, channelTypes, agentTypes, agentUsages, agentListRequest.Offset, agentListRequest.Limit)
+	} else if len(agentUsages) > 0 {
+		total, agents, err = model.GetEnabledAgentListWithIDs(
 			eid, agentListRequest.Keyword, agentListRequest.GroupId,
 			nil, channelTypes, agentTypes, agentUsages, agentListRequest.Offset, agentListRequest.Limit)
 	} else {
@@ -688,7 +692,7 @@ func GetAgents(c *gin.Context) {
 			return
 		}
 
-		total, agents, err = model.GetAgentListWithIDs(
+		total, agents, err = model.GetEnabledAgentListWithIDs(
 			eid, agentListRequest.Keyword, agentListRequest.GroupId,
 			permittedAgentIDs, channelTypes, agentTypes, agentUsages,
 			agentListRequest.Offset, agentListRequest.Limit)
@@ -743,7 +747,7 @@ func GetAgentsByGroup(c *gin.Context) {
 	channelTypes := splitChannelTypesString(agentListRequest.ChannelTypes)
 	agentTypes := splitAgentTypesString(agentListRequest.AgentTypes)
 	agentUsages := splitAgentUsagesString(agentListRequest.AgentUsages)
-	var total, agents, err = model.GetAgentListWithIDs(
+	var total, agents, err = model.GetEnabledAgentListWithIDs(
 		config.GetEID(c), agentListRequest.Keyword, agentListRequest.GroupId,
 		nil, channelTypes, agentTypes, agentUsages, agentListRequest.Offset, agentListRequest.Limit)
 

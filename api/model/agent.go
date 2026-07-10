@@ -163,7 +163,18 @@ func GetEnterpriseAgentByID(eid int64, agentID int64) (*Agent, error) {
 }
 
 func GetAgentListWithIDs(eid int64, keyword string, group_id int64, permittedAgentIDs []int64, channel_types []int, agent_types []int, agent_usages []int, offset int, limit int) (count int64, agents []*Agent, err error) {
+	return getAgentListWithIDs(eid, keyword, group_id, permittedAgentIDs, channel_types, agent_types, agent_usages, offset, limit, false)
+}
+
+func GetEnabledAgentListWithIDs(eid int64, keyword string, group_id int64, permittedAgentIDs []int64, channel_types []int, agent_types []int, agent_usages []int, offset int, limit int) (count int64, agents []*Agent, err error) {
+	return getAgentListWithIDs(eid, keyword, group_id, permittedAgentIDs, channel_types, agent_types, agent_usages, offset, limit, true)
+}
+
+func getAgentListWithIDs(eid int64, keyword string, group_id int64, permittedAgentIDs []int64, channel_types []int, agent_types []int, agent_usages []int, offset int, limit int, enabledOnly bool) (count int64, agents []*Agent, err error) {
 	db := DB.Model(&Agent{}).Where("eid = ? AND owner_id = ?", eid, AgentOwnerEnterprise)
+	if enabledOnly {
+		db = db.Where("enable = ?", true)
+	}
 	if keyword != "" {
 		db = db.Where("name LIKE ?", "%"+keyword+"%")
 	}
