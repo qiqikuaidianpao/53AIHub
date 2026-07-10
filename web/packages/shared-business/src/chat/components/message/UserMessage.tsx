@@ -72,6 +72,12 @@ function parseMessageContent(msg: Message): string {
   return content;
 }
 
+function readFileSize(file: FileItem): number {
+  const rawSize = file.file_size ?? file.size;
+  const size = typeof rawSize === "number" ? rawSize : Number(rawSize);
+  return Number.isFinite(size) && size > 0 ? size : 0;
+}
+
 function UserMessageInner({
   message,
   agentLogo,
@@ -109,10 +115,10 @@ function UserMessageInner({
   const uploadedFiles = useMemo<BubbleFileItem[]>(
     () => (message.uploaded_files || []).map((file) => ({
       id: String(file.id),
-      filename: file.name || file.file_name || "",
+      filename: file.filename || file.name || file.file_name || "",
       url: file.url || file.file_url || file.file_path || "",
-      size: file.file_size ?? 0,
-      mime_type: file.file_mime || "",
+      size: readFileSize(file),
+      mime_type: file.mime_type || file.file_mime || "",
     })),
     [message.uploaded_files],
   );

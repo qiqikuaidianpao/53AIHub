@@ -123,12 +123,15 @@ export type OpenClawTimelineItemType =
 export interface FileItem {
   id: string | number;
   file_id?: string | number;
+  filename?: string;
   name?: string;
   file_name?: string;
   file_path?: string;
   file_ext?: string;
   file_mime?: string;
+  mime_type?: string;
   file_size?: number;
+  size?: number | string;
   file_url?: string;
   file_icon?: string;
   icon?: string;

@@ -37,10 +37,12 @@ interface Skill {
 
 interface UploadedFile {
   id: string
+  filename?: string
   name: string
   size?: number
   mime_type?: string
   preview_key?: string
+  url?: string
 }
 
 interface SpecifiedFile {
@@ -206,15 +208,20 @@ export function useChatMessages(options?: UseChatMessagesOptions) {
           const textItem = userContent.find((item: any) => item?.type === 'text')
           questionText = textItem?.content || ''
           uploaded_files = userContent
-            .filter((item: any) => item != null && item.type === 'file' && !item.library_id)
+            .filter((item: any) => item != null && (item.type === 'file' || item.type === 'image') && !item.library_id)
             .map((fileItem: any) => {
               const fileId = fileItem.content?.replace('file_id:', '') || ''
+              const fileName = fileItem.filename || fileItem.name || `文件 ${fileId}`
+              const rawSize = fileItem.size ?? fileItem.file_size
+              const size = typeof rawSize === 'number' ? rawSize : Number.isFinite(Number(rawSize)) ? Number(rawSize) : undefined
               return {
                 id: fileId,
-                name: fileItem.filename || `文件 ${fileId}`,
-                size: fileItem.size,
-                mime_type: fileItem.mime_type,
-                preview_key: fileItem.preview_key
+                filename: fileName,
+                name: fileName,
+                size,
+                mime_type: fileItem.mime_type ?? fileItem.file_mime,
+                preview_key: fileItem.preview_key,
+                url: fileItem.url
               }
             })
             specified_files = userContent

@@ -160,6 +160,39 @@ const EXAMPLE_QUESTIONS = [
   { id: "4", content: "根据用户的描述，自动生成Mermaid图表代码。" },
 ];
 
+const readFileSize = (file: any): number => {
+  const rawSize = file?.size ?? file?.file_size ?? file?.fileSize;
+  const size = typeof rawSize === "number" ? rawSize : Number(rawSize);
+  return Number.isFinite(size) && size > 0 ? size : 0;
+};
+
+const normalizeBubbleFiles = (files: any[] = []) =>
+  files
+    .map((file, index) => {
+      const previewKey = file?.preview_key ?? file?.previewKey;
+      const fileName = file?.filename ?? file?.name ?? file?.file_name ?? "";
+      const url =
+        file?.url ??
+        file?.file_url ??
+        file?.file_path ??
+        (previewKey ? `${api_host}/api/preview/${previewKey}` : "");
+
+      return {
+        id: String(file?.id ?? file?.file_id ?? file?.upload_file_id ?? previewKey ?? `${fileName}-${index}`),
+        filename: String(fileName),
+        url: String(url),
+        size: readFileSize(file),
+        mime_type: String(file?.mime_type ?? file?.file_mime ?? file?.mime ?? ""),
+      };
+    })
+    .filter((file) => file.filename || file.url);
+
+const getUserBubbleFiles = (msg: any) => {
+  const uploadedFiles = Array.isArray(msg?.uploaded_files) ? msg.uploaded_files : [];
+  const userFiles = Array.isArray(msg?.user_files) ? msg.user_files : [];
+  return normalizeBubbleFiles(uploadedFiles.length ? uploadedFiles : userFiles);
+};
+
 // ============================================================
 // Component
 // ============================================================
@@ -1536,7 +1569,7 @@ export function IndexChatView() {
                     <div className="flex-1 overflow-hidden">
                       <BubbleUser
                         content={handleParseContent(msg)}
-                        files={msg.user_files}
+                        files={getUserBubbleFiles(msg)}
                         className={isShareMode ? "!mb-0" : ""}
                         style={{
                           "--hubx-color-bg-message": "#EBF1FF",
