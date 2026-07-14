@@ -10,9 +10,11 @@ import (
 	"net/http"
 	"net/textproto"
 	"strings"
+	"time"
 
 	"github.com/53AI/53AIHub/common/logger"
 	"github.com/53AI/53AIHub/common/storage"
+	"github.com/53AI/53AIHub/config"
 	db_model "github.com/53AI/53AIHub/model"
 	"github.com/53AI/53AIHub/service/hub_adaptor/custom"
 	"github.com/gin-gonic/gin"
@@ -25,6 +27,16 @@ import (
 type Adaptor struct {
 	meta         *meta.Meta
 	CustomConfig *custom.CustomConfig
+}
+
+const defaultDIFYHTTPTimeout = 10 * time.Minute
+
+func difyHTTPTimeout() time.Duration {
+	seconds := config.DIFY_HTTP_TIMEOUT_SECONDS
+	if seconds <= 0 {
+		return defaultDIFYHTTPTimeout
+	}
+	return time.Duration(seconds) * time.Second
 }
 
 func (a *Adaptor) Init(meta *meta.Meta) {
@@ -148,7 +160,7 @@ func ConvertRequest(textRequest model.GeneralOpenAIRequest, meta *meta.Meta, cus
 }
 
 func (a *Adaptor) DoRequest(c *gin.Context, meta *meta.Meta, requestBody io.Reader) (*http.Response, error) {
-	return custom.DoRequestHelper(a, c, meta, requestBody)
+	return custom.DoRequestHelperWithTimeout(a, c, meta, requestBody, difyHTTPTimeout())
 }
 
 func (a *Adaptor) ConvertImageRequest(request *model.ImageRequest) (any, error) {

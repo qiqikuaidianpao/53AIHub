@@ -2438,6 +2438,7 @@ func RelayTextHelper(c *gin.Context, messageStatus *MessageStatsInfo) *relay_mod
 				"error": err.Error(),
 			})
 		}
+		failUpdateMessage(c, agent, messageID, startTime, meta, textRequest.Model, requestId, err.Error())
 		return openai.ErrorWrapper(err, "convert_request_failed", http.StatusInternalServerError)
 	}
 	requestBodySize := getReaderSize(requestBody)
@@ -2456,6 +2457,7 @@ func RelayTextHelper(c *gin.Context, messageStatus *MessageStatsInfo) *relay_mod
 		logger.Warnf(ctx, "【技能运行】LLM请求失败: turn=%d, skill=%s, model=%s, stream=%v, duration_ms=%d, err=%v",
 			turnCount, skillName, meta.ActualModelName, meta.IsStream, time.Since(doRequestStart).Milliseconds(), err)
 		logger.Errorf(ctx, "DoRequest failed: %s", err.Error())
+		failUpdateMessage(c, agent, messageID, startTime, meta, textRequest.Model, requestId, err.Error())
 		return openai.ErrorWrapper(err, "do_request_failed", http.StatusInternalServerError)
 	}
 	llmRequestDuration := time.Since(doRequestStart).Milliseconds()
@@ -2513,6 +2515,12 @@ func RelayTextHelper(c *gin.Context, messageStatus *MessageStatsInfo) *relay_mod
 	logger.SysLogf("usage: %+v", usage)
 	if respErr != nil {
 		logger.Errorf(ctx, "respErr is not nil: %+v", respErr)
+		if emitAnswerGenerationStep {
+			messageStatus.StepSender.SendEndStep(STEP_ANSWER_GENERATION, "生成失败", map[string]interface{}{
+				"error": respErr.Message,
+			})
+		}
+		failUpdateMessage(c, agent, messageID, startTime, meta, textRequest.Model, requestId, respErr.Message)
 		return respErr
 	}
 

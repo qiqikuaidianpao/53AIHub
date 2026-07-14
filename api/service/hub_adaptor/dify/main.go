@@ -2,7 +2,11 @@ package dify
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"net"
 	"net/http"
 	"strings"
 
@@ -50,6 +54,7 @@ func StreamHandler(c *gin.Context, resp *http.Response) (*model.ErrorWithStatusC
 
 		response.Model = modelName
 		response.Created = createdTime
+		responseText += difyResponse.Answer
 
 		err = render.ObjectData(c, response)
 		if err != nil {
@@ -58,8 +63,27 @@ func StreamHandler(c *gin.Context, resp *http.Response) (*model.ErrorWithStatusC
 		channelConversationId = difyResponse.ConversationID
 	}
 
-	if err := scanner.Err(); err != nil {
-		logger.SysError("error reading stream: " + err.Error())
+	if scanErr := scanner.Err(); scanErr != nil {
+		logger.SysError("error reading stream: " + scanErr.Error())
+		message := difyStreamReadErrorMessage(scanErr)
+		errorChunk, _ := StreamResponseDifyOpenAI(&StreamResponse{
+			ConversationID: channelConversationId,
+			Answer:         message,
+		})
+		if errorChunk != nil {
+			errorChunk.Model = modelName
+			errorChunk.Created = createdTime
+			if renderErr := render.ObjectData(c, errorChunk); renderErr != nil {
+				logger.SysError(renderErr.Error())
+			}
+		}
+		responseText += message
+		render.Done(c)
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			logger.SysError("error closing stream: " + closeErr.Error())
+		}
+		wrapped := fmt.Errorf("%s: %w", message, scanErr)
+		return openai.ErrorWrapper(wrapped, "read_response_stream_failed", http.StatusGatewayTimeout), &responseText, channelConversationId
 	}
 
 	render.Done(c)
@@ -70,6 +94,21 @@ func StreamHandler(c *gin.Context, resp *http.Response) (*model.ErrorWithStatusC
 	}
 
 	return nil, &responseText, channelConversationId
+}
+
+func difyStreamReadErrorMessage(err error) string {
+	if err == nil {
+		return ""
+	}
+	var netErr net.Error
+	lower := strings.ToLower(err.Error())
+	if errors.Is(err, context.DeadlineExceeded) ||
+		(errors.As(err, &netErr) && netErr.Timeout()) ||
+		strings.Contains(lower, "timeout") ||
+		strings.Contains(lower, "deadline exceeded") {
+		return "文档处理时间超过系统等待上限，请稍后重试或拆分文件。"
+	}
+	return "文档处理连接中断，请稍后重试。"
 }
 
 func StreamResponseDifyOpenAI(difyResponse *StreamResponse) (*openai.ChatCompletionsStreamResponse, *Response) {

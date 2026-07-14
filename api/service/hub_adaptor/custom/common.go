@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/53AI/53AIHub/common/logger"
 	"github.com/53AI/53AIHub/common/utils/helper"
@@ -27,6 +28,23 @@ func SetupCommonRequestHeader(c *gin.Context, req *http.Request, meta *meta.Meta
 }
 
 func DoRequestHelper(a adaptor.Adaptor, c *gin.Context, meta *meta.Meta, requestBody io.Reader) (*http.Response, error) {
+	return doRequestHelper(a, c, meta, requestBody, client.HTTPClient)
+}
+
+func DoRequestHelperWithTimeout(a adaptor.Adaptor, c *gin.Context, meta *meta.Meta, requestBody io.Reader, timeout time.Duration) (*http.Response, error) {
+	return doRequestHelper(a, c, meta, requestBody, cloneHTTPClientWithTimeout(client.HTTPClient, timeout))
+}
+
+func cloneHTTPClientWithTimeout(base *http.Client, timeout time.Duration) *http.Client {
+	if base == nil {
+		return &http.Client{Timeout: timeout}
+	}
+	cloned := *base
+	cloned.Timeout = timeout
+	return &cloned
+}
+
+func doRequestHelper(a adaptor.Adaptor, c *gin.Context, meta *meta.Meta, requestBody io.Reader, httpClient *http.Client) (*http.Response, error) {
 	// 先读取并保存请求体内容
 	var bodyBytes []byte
 	var err error
@@ -51,7 +69,7 @@ func DoRequestHelper(a adaptor.Adaptor, c *gin.Context, meta *meta.Meta, request
 	if err != nil {
 		return nil, fmt.Errorf("setup request header failed: %w", err)
 	}
-	resp, err := DoRequest(c, req)
+	resp, err := DoRequestWithClient(c, req, httpClient)
 	if err != nil {
 		return nil, fmt.Errorf("do request failed: %w", err)
 	}
@@ -87,7 +105,14 @@ func DoRequestHelper(a adaptor.Adaptor, c *gin.Context, meta *meta.Meta, request
 }
 
 func DoRequest(c *gin.Context, req *http.Request) (*http.Response, error) {
-	resp, err := client.HTTPClient.Do(req)
+	return DoRequestWithClient(c, req, client.HTTPClient)
+}
+
+func DoRequestWithClient(c *gin.Context, req *http.Request, httpClient *http.Client) (*http.Response, error) {
+	if httpClient == nil {
+		httpClient = http.DefaultClient
+	}
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
