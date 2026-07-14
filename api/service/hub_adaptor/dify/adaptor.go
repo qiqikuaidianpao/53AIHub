@@ -111,7 +111,7 @@ func ConvertRequest(textRequest model.GeneralOpenAIRequest, meta *meta.Meta, cus
 						logger.SysError(fmt.Sprintf("create file mapping failed: %v", err))
 						continue
 					}
-				} else if helper.GetTimestamp() > fileMapping.ExpirationTime {
+				} else if helper.GetTimestamp() > fileMapping.ExpirationTime || shouldRefreshDIFYFileMapping(uoloadFile, fileMapping) {
 					err := DIFYUploadFile(meta, uoloadFile, fileMapping)
 					if err != nil {
 						logger.SysError(fmt.Sprintf("update file failed: %v", err))
@@ -250,6 +250,10 @@ func DIFYUploadFile(meta *meta.Meta, uploadFile *db_model.UploadFile, fileMappin
 	if err != nil {
 		return err
 	}
+	uploadPayload, err := prepareDIFYUpload(uploadFile, fileContent)
+	if err != nil {
+		return err
+	}
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -262,12 +266,15 @@ func DIFYUploadFile(meta *meta.Meta, uploadFile *db_model.UploadFile, fileMappin
 	h.Set("Content-Disposition",
 		fmt.Sprintf(`form-data; name="%s"; filename="%s"; type="%s"`,
 			quoteEscaper.Replace("file"),
-			quoteEscaper.Replace(uploadFile.FileName),
-			quoteEscaper.Replace(uploadFile.MimeType)))
-	h.Set("Content-Type", uploadFile.MimeType)
+			quoteEscaper.Replace(uploadPayload.FileName),
+			quoteEscaper.Replace(uploadPayload.MimeType)))
+	h.Set("Content-Type", uploadPayload.MimeType)
 	part, err := writer.CreatePart(h)
+	if err != nil {
+		return err
+	}
 
-	_, err = io.Copy(part, bytes.NewReader(fileContent))
+	_, err = io.Copy(part, bytes.NewReader(uploadPayload.Content))
 	if err != nil {
 		return err
 	}
@@ -308,7 +315,16 @@ func DIFYUploadFile(meta *meta.Meta, uploadFile *db_model.UploadFile, fileMappin
 	fileMapping.ChannelID = meta.ChannelId
 	fileMapping.Model = "bot-" + strings.TrimPrefix(meta.ActualModelName, "bot-")
 	fileMapping.ExpirationTime = helper.GetTimestamp() + 3600*24*30
-	jsonResult, err := json.Marshal(result)
+	mappingMetadata := struct {
+		DIFYUploadResponse
+		SourceNormalized bool   `json:"source_normalized,omitempty"`
+		SourceExtension  string `json:"source_extension,omitempty"`
+	}{
+		DIFYUploadResponse: result,
+		SourceNormalized:   uploadPayload.Normalized,
+		SourceExtension:    uploadPayload.SourceExtension,
+	}
+	jsonResult, err := json.Marshal(mappingMetadata)
 	if err != nil {
 		return err
 	}

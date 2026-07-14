@@ -197,7 +197,7 @@ func (a *DifyWorkflowAdaptor) processFileIDString(value string) (interface{}, er
 			logger.SysErrorf("创建文件映射失败: %v", err)
 			return value, err
 		}
-	} else if helper.GetTimestamp() > fileMapping.ExpirationTime {
+	} else if helper.GetTimestamp() > fileMapping.ExpirationTime || shouldRefreshDIFYFileMapping(uploadFile, fileMapping) {
 		// 文件映射已过期，重新上传
 		err := DifyUploadFile(a.meta, uploadFile, fileMapping)
 		if err != nil {
