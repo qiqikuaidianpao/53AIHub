@@ -12,6 +12,7 @@ import { getSimpleDateFormatString, decodeShortId, JSONParse } from "@km/shared-
 import { formatFileInfo } from "@/api/modules/files/transform";
 import { buildUrl } from "@/utils/router";
 import { t } from "@/locales";
+import { parseSharedUserContent } from "./message";
 import "./share.css";
 
 type From = "agent" | "index" | "file";
@@ -157,21 +158,12 @@ export function ShareChatView() {
           item.message,
           typeof item.message === "string" ? [{ role: "user", content: item.message }] : []
         );
-        const userMessage = message.find((m: any) => m.role === "user") || { content: "" };
         const userInfo = message.find((m: any) => m.role === "info");
 
         let specified_files: any[] = [];
         let specified_content = "";
-        let questionText = "";
-
-        const userContent = JSONParse(userMessage.content, null);
-        if (Array.isArray(userContent)) {
-          const textItem = userContent.find((item: any) => item?.type === "text");
-          questionText = textItem?.content || "";
-        } else {
-          const content = userMessage.content;
-          questionText = typeof content === "string" ? content : (content?.text || content?.content || "");
-        }
+        const { question: questionText, files: userFiles } =
+          parseSharedUserContent(item.message);
 
         if (userInfo) {
           const infoContent = JSONParse(userInfo.content, {});
@@ -192,6 +184,7 @@ export function ShareChatView() {
           rag_stats: formatRagStats(item.rag_stats, item.process_records),
           specified_files,
           specified_content,
+          user_files: userFiles,
         });
       }
       return list;
