@@ -8,10 +8,17 @@ interface CodeProps {
   html: string;
   value: string;
   language?: string;
+  darkMode?: boolean;
   onCopy?: (value: string) => void;
 }
 
-const Code: React.FC<CodeProps> = ({ html, value, language = "", onCopy }) => {
+const Code: React.FC<CodeProps> = ({
+  html,
+  value,
+  language = "",
+  darkMode = false,
+  onCopy,
+}) => {
   return (
     <div className="x-code-diagram-viewer">
       <div className="x-code-diagram-viewer__header">
@@ -43,6 +50,11 @@ const Code: React.FC<CodeProps> = ({ html, value, language = "", onCopy }) => {
         <div className="x-code-diagram-viewer__code">
           <pre
             className="x-code-diagram-viewer__code-pre"
+            style={
+              darkMode
+                ? { color: "#f3f4f6", backgroundColor: "#2d2d2d" }
+                : undefined
+            }
             dangerouslySetInnerHTML={{ __html: html }}
           />
         </div>

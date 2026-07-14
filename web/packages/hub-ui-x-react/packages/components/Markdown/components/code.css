@@ -93,3 +93,15 @@
   background-color: #fff;
   margin: 0;
 }
+
+/* Keep unhighlighted formulas and punctuation readable on the dark code background. */
+.markdown-body.dark-mode .x-code-diagram-viewer__code-pre,
+.markdown-body.dark-mode .x-code-diagram-viewer__code-pre .hljs-operator,
+.markdown-body.dark-mode .x-code-diagram-viewer__code-pre .hljs-punctuation,
+.markdown-body.dark-mode .x-code-diagram-viewer__code-pre .hljs-subst {
+  color: #f3f4f6;
+}
+
+.markdown-body.dark-mode .x-code-diagram-viewer__code-pre {
+  background-color: #2d2d2d;
+}

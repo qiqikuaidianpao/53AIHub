@@ -698,6 +698,7 @@ const MdRenderer: React.FC<MdRendererProps> = ({
               value={token.content}
               html={value}
               language={language}
+              darkMode={isDarkMode}
               onCopy={(val) => {
                 copyToClip(val);
               }}
