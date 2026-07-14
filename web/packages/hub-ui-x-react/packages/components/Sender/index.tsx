@@ -79,6 +79,20 @@ const createFileItem = (file: File, vid: string): FileItem => ({
   status: FILE_STATUS.UPLOADING
 });
 
+const hasDraggedFiles = (dataTransfer: DataTransfer | null): boolean => {
+  if (!dataTransfer) return false;
+
+  return dataTransfer.files.length > 0 || Array.from(dataTransfer.types || []).includes('Files');
+};
+
+const preventBrowserFileHandling = (event: React.DragEvent): boolean => {
+  if (!hasDraggedFiles(event.dataTransfer)) return false;
+
+  event.preventDefault();
+  event.stopPropagation();
+  return true;
+};
+
 const Sender = forwardRef<SenderRef, SenderProps>(({
   placeholder = '',
   disabled = false,
@@ -340,6 +354,7 @@ const Sender = forwardRef<SenderRef, SenderProps>(({
   }, [processFiles]);
 
   const handleDragOver = useCallback((event: React.DragEvent) => {
+    if (!preventBrowserFileHandling(event)) return;
     if (!enableDragUpload || disabled) return;
 
     if (dragLeaveTimerRef.current) {
@@ -352,6 +367,7 @@ const Sender = forwardRef<SenderRef, SenderProps>(({
   }, [enableDragUpload, disabled]);
 
   const handleDragLeave = useCallback((event: React.DragEvent) => {
+    if (!preventBrowserFileHandling(event)) return;
     if (!enableDragUpload || disabled) return;
 
     if (dragLeaveTimerRef.current) {
@@ -364,7 +380,7 @@ const Sender = forwardRef<SenderRef, SenderProps>(({
   }, [enableDragUpload, disabled]);
 
   const handleDrop = useCallback((event: React.DragEvent) => {
-    if (!enableDragUpload || disabled) return;
+    if (!preventBrowserFileHandling(event)) return;
 
     if (dragLeaveTimerRef.current) {
       clearTimeout(dragLeaveTimerRef.current);
@@ -372,6 +388,8 @@ const Sender = forwardRef<SenderRef, SenderProps>(({
     }
 
     setIsDragging(false);
+
+    if (!enableDragUpload || disabled) return;
 
     const files = event.dataTransfer?.files;
     if (files && files.length > 0) {
@@ -435,6 +453,7 @@ const Sender = forwardRef<SenderRef, SenderProps>(({
   return (
     <div
       className={`x-sender ${isFocused ? 'x-sender--focused' : ''}`}
+      onDragEnter={handleDragOver}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
