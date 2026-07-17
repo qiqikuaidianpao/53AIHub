@@ -11,6 +11,10 @@ export function useEnv() {
     return import.meta.env.VITE_PRIVATE_PREM === 'true'
   }, [])
 
+  const publicRegistrationEnabled = useMemo(() => {
+    return (window as any).public_registration_enabled === true
+  }, [])
+
   // Check for RC environment (ends with km.53ai.com)
   const isRcEnvValue = hostname.endsWith('.km.53ai.com')
   const isDevEnvValue = hostname.endsWith('.kmtest.53ai.com')
@@ -43,7 +47,8 @@ export function useEnv() {
     isRcEnv,
     isDevEnv,
     isOpLocalEnv,
-    isPrivatePremEnv
+    isPrivatePremEnv,
+    publicRegistrationEnabled
   }
 }
 

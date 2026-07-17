@@ -215,6 +215,11 @@ func SmsLogin(c *gin.Context) {
 // @Success 200 {object} model.CommonResponse{data=LoginResponse} "Success"
 // @Router /api/register [post]
 func PasswordRegister(c *gin.Context) {
+	if !config.PUBLIC_REGISTRATION_ENABLED {
+		c.JSON(http.StatusForbidden, model.ForbiddenError.ToNewErrorResponse("Public registration is disabled"))
+		return
+	}
+
 	// Parse the request body into PasswordRegisterUserRequest struct
 	var userRequest PasswordRegisterUserRequest
 	err := json.NewDecoder(c.Request.Body).Decode(&userRequest)

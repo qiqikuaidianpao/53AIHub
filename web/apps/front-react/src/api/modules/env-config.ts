@@ -4,6 +4,7 @@ import service from '../config'
 export type EnvConfigData = {
   api_host?: string
   kk_base_url?: string
+  public_registration_enabled?: boolean
 }
 
 /** GET /api/env-config 响应体 */

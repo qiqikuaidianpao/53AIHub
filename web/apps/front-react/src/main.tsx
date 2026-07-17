@@ -37,11 +37,16 @@ setupGlobalMethods();
 
 /** 从后端拉取 env-config，写入 window 供 config 按需读取 */
 async function fetchEnvConfig(): Promise<void> {
+  ;(window as any).public_registration_enabled = false
+
   try {
     const res = await getEnvConfig()
     if (res?.code === 0 && res?.data) {
       if (res.data.kk_base_url != null) {
         (window as any).kkfileview_url = res.data.kk_base_url
+      }
+      if (res.data.public_registration_enabled != null) {
+        ;(window as any).public_registration_enabled = res.data.public_registration_enabled
       }
     }
   } catch {

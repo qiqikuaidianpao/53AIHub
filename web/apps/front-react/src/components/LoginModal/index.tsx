@@ -80,7 +80,8 @@ export const LoginModal = forwardRef<LoginModalRef, LoginModalProps>(
     const agentStore = useAgentStore();
     const enterpriseStore = useEnterpriseStore();
     const { sendcode, codeCount } = useMobile();
-    const { isOpLocalEnv, isPrivatePremEnv } = useEnv();
+    const { isOpLocalEnv, isPrivatePremEnv, publicRegistrationEnabled } =
+      useEnv();
 
     const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -234,7 +235,7 @@ export const LoginModal = forwardRef<LoginModalRef, LoginModalProps>(
       const errorMessage = data.message || "";
 
       if (errorMessage.includes("record not found")) {
-        if (isOpLocalEnv && !openSMTP) {
+        if (publicRegistrationEnabled && isOpLocalEnv && !openSMTP) {
           // Auto register in op-local env without SMTP
           const values = form.getFieldsValue();
           try {
@@ -461,7 +462,8 @@ export const LoginModal = forwardRef<LoginModalRef, LoginModalProps>(
                   <div className="flex items-center justify-between mt-3 max-md:flex-col max-md:gap-2">
                     <Policy />
                     <div className="flex-1 flex items-center justify-end">
-                      {checkVersion(VERSION_MODULE.REGISTERED_USER) &&
+                      {publicRegistrationEnabled &&
+                        checkVersion(VERSION_MODULE.REGISTERED_USER) &&
                         !enterpriseStore.is_enterprise && (
                           <Button
                             type="link"

@@ -84,6 +84,7 @@ var SchemaMigrateGuardPollSeconds = env.Int("SCHEMA_MIGRATE_GUARD_POLL_SECONDS",
 var ADMIN_EMAIL = env.String("ADMIN_EMAIL", "admin@53ai.com")
 var ADMIN_MOBILE = env.String("ADMIN_MOBILE", "")
 var ADMIN_PASSWORD = env.String("ADMIN_PASSWORD", "admin888")
+var PUBLIC_REGISTRATION_ENABLED = env.Bool("PUBLIC_REGISTRATION_ENABLED", true)
 
 var REDIS_CONN = env.String("REDIS_CONN", "")
 

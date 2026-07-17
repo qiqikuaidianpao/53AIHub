@@ -20,6 +20,7 @@ services:
       SANDBOX_SERVICE_URL: "${SANDBOX_SERVICE_URL:-http://sandbox:8000}"
       KK_BASE_URL: "${KK_BASE_URL:-http://localhost:9006}"
       DEPLOYMENT_MODE: "${DEPLOYMENT_MODE:-local}"
+      PUBLIC_REGISTRATION_ENABLED: "${PUBLIC_REGISTRATION_ENABLED:-true}"
       DEBUG: "${DEBUG:-false}"
       LOG_LEVEL: "${LOG_LEVEL:-info}"
       MIGRATE_DB_ENABLED: "${MIGRATE_DB_ENABLED:-true}"

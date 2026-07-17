@@ -32,8 +32,9 @@ type VersionInfo struct {
 
 // EnvConfigInfo 环境变量配置信息响应结构
 type EnvConfigInfo struct {
-	APIHost   string `json:"api_host" example:"https://api.example.com/"`
-	KKBaseURL string `json:"kk_base_url" example:"https://kk.example.com/"`
+	APIHost                   string `json:"api_host" example:"https://api.example.com/"`
+	KKBaseURL                 string `json:"kk_base_url" example:"https://kk.example.com/"`
+	PublicRegistrationEnabled bool   `json:"public_registration_enabled" example:"false"`
 }
 
 // GetEnvConfig godoc
@@ -46,8 +47,9 @@ type EnvConfigInfo struct {
 // @Router       /api/env-config [get]
 func GetEnvConfig(c *gin.Context) {
 	envConfig := EnvConfigInfo{
-		APIHost:   config.GetApiHost(),
-		KKBaseURL: config.KKBaseURL,
+		APIHost:                   config.GetApiHost(),
+		KKBaseURL:                 config.KKBaseURL,
+		PublicRegistrationEnabled: config.PUBLIC_REGISTRATION_ENABLED,
 	}
 	c.JSON(http.StatusOK, model.Success.ToResponse(envConfig))
 }
